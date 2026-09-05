@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { CITIZEN_USER_PROFILE } from '../citizenMockData.js'
 import { saveDraftToStorage, removeDraftFromStorage } from '../citizenDraftsService.js'
+import { useAppTranslation } from '../../../hooks/useAppTranslation.js'
 
 const getTodayStr = () => new Date().toISOString().split('T')[0]
 const getYesterdayStr = () => {
@@ -30,6 +31,8 @@ const DEPARTMENTS = [
 ]
 
 function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft = null }) {
+  const { currentLanguage } = useAppTranslation()
+
   // Unique Draft ID tracking
   const [draftId, setDraftId] = useState(initialDraft?.id || null)
 
@@ -49,13 +52,18 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
   const [evidenceFiles, setEvidenceFiles] = useState([])
   const [restoredEvidenceMeta, setRestoredEvidenceMeta] = useState(initialDraft?.evidenceMeta || [])
   const [isDragging, setIsDragging] = useState(false)
+  const [isCameraActive, setIsCameraActive] = useState(false)
+  const [cameraError, setCameraError] = useState(null)
   const fileInputRef = useRef(null)
-  const cameraInputRef = useRef(null)
+  const videoRef = useRef(null)
+  const streamRef = useRef(null)
 
   // Voice to text
   const [isListening, setIsListening] = useState(false)
   const [voiceNotice, setVoiceNotice] = useState(null)
   const recognitionRef = useRef(null)
+  const baseDescriptionRef = useRef('')
+  const isStartingVoiceRef = useRef(false)
 
   // Location
   const [locationState, setLocationState] = useState(initialDraft?.locationState || 'initial')
@@ -98,14 +106,120 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
     if (!isDirty) setIsDirty(true)
   }
 
-  // Clean up speech recognition on unmount
+  // Clean up speech recognition and camera stream on unmount
   useEffect(() => {
     return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop())
+        streamRef.current = null
+      }
       if (recognitionRef.current) {
         recognitionRef.current.stop()
       }
     }
   }, [])
+
+  // Sync stream to video element when camera becomes active
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current
+      videoRef.current.play().catch((err) => console.warn('Camera video play warning:', err))
+    }
+  }, [isCameraActive])
+
+  // Live Camera API Handlers
+  const handleOpenCamera = async () => {
+    markDirty()
+    setCameraError(null)
+
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      setCameraError(
+        'Live camera access is not supported on this browser or requires a secure context (HTTPS / localhost). Please use the file upload option.'
+      )
+      return
+    }
+
+    try {
+      let stream = null
+      try {
+        // Try environment/back facing camera first
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false,
+        })
+      } catch {
+        // Fallback to generic video
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        })
+      }
+
+      streamRef.current = stream
+      setIsCameraActive(true)
+    } catch (err) {
+      console.warn('Camera getUserMedia error:', err)
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setCameraError('Camera access was denied. Please allow camera permissions in your browser settings to capture photos.')
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setCameraError('No camera device was detected on this system.')
+      } else {
+        setCameraError('Unable to open live camera preview. Please attach photos using the file upload option.')
+      }
+    }
+  }
+
+  const handleCloseCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+    setIsCameraActive(false)
+  }
+
+  const handleCapturePhoto = () => {
+    if (!videoRef.current || !streamRef.current) return
+
+    const video = videoRef.current
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth || 640
+    canvas.height = video.videoHeight || 480
+    const ctx = canvas.getContext('2d')
+
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const timestamp = Date.now()
+            const dateStr = new Date().toISOString().slice(0, 10)
+            const filename = `Photo_${dateStr}_${timestamp.toString().slice(-4)}.jpg`
+            const capturedFile = new File([blob], filename, { type: 'image/jpeg' })
+
+            const newEntry = {
+              id: Math.random().toString(36).substring(2, 9),
+              name: filename,
+              size: blob.size,
+              type: 'image/jpeg',
+              file: capturedFile,
+              previewUrl: URL.createObjectURL(blob),
+            }
+
+            setEvidenceFiles((prev) => [...prev, newEntry])
+            markDirty()
+          }
+          handleCloseCamera()
+        },
+        'image/jpeg',
+        0.92
+      )
+    } else {
+      handleCloseCamera()
+    }
+  }
 
   // Evidence file handlers
   const handleFiles = (incomingFiles) => {
@@ -139,62 +253,157 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
     setRestoredEvidenceMeta((prev) => prev.filter((_, i) => i !== index))
   }
 
+  // Voice recognition locale mapping
+  const getSpeechLocale = (lang) => {
+    switch (lang) {
+      case 'ta':
+        return 'ta-IN'
+      case 'hi':
+        return 'hi-IN'
+      default:
+        return 'en-IN'
+    }
+  }
+
+  // Secure context detection (HTTPS, localhost, 127.0.0.1)
+  const isContextSecure = () => {
+    if (typeof window === 'undefined') return true
+    if (window.isSecureContext) return true
+    const hostname = window.location.hostname
+    return hostname === 'localhost' || hostname === '127.0.0.1' || window.location.protocol === 'https:'
+  }
+
+  const handleStopVoice = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop()
+      } catch (err) {
+        console.warn('Speech recognition stop warning:', err)
+      }
+    }
+    setIsListening(false)
+    isStartingVoiceRef.current = false
+  }
+
   // Voice recognition toggle
   const handleToggleVoice = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-
     if (isListening) {
-      if (recognitionRef.current) recognitionRef.current.stop()
-      setIsListening(false)
+      handleStopVoice()
       return
     }
 
-    if (!SpeechRecognition || !window.isSecureContext) {
-      setVoiceNotice('Voice-to-text is unavailable in this browser context (requires HTTPS / supported browser). You can type directly.')
+    if (isStartingVoiceRef.current) return
+    isStartingVoiceRef.current = true
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      isStartingVoiceRef.current = false
+      setVoiceNotice('Voice input is not supported in this browser. You can continue typing directly.')
       return
     }
+
+    if (!isContextSecure()) {
+      isStartingVoiceRef.current = false
+      setVoiceNotice('Voice input requires a secure connection (HTTPS or localhost). You can continue typing directly.')
+      return
+    }
+
+    setVoiceNotice(null)
+    baseDescriptionRef.current = description.trim()
 
     try {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort()
+        } catch {
+          // ignore
+        }
+        recognitionRef.current = null
+      }
+
       const recognition = new SpeechRecognition()
       recognitionRef.current = recognition
       recognition.continuous = true
       recognition.interimResults = true
-      recognition.lang = 'en-IN'
+      recognition.lang = getSpeechLocale(currentLanguage)
 
       recognition.onstart = () => {
         setIsListening(true)
+        isStartingVoiceRef.current = false
         setVoiceNotice(null)
       }
 
       recognition.onresult = (event) => {
         markDirty()
-        let transcript = ''
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript
+        let sessionFinal = ''
+        let sessionInterim = ''
+
+        for (let i = 0; i < event.results.length; i++) {
+          const res = event.results[i]
+          if (res.isFinal) {
+            sessionFinal += res[0].transcript + ' '
+          } else {
+            sessionInterim += res[0].transcript
+          }
         }
-        if (transcript.trim()) {
-          setDescription((prev) => (prev ? `${prev.trim()} ${transcript.trim()}` : transcript.trim()))
+
+        const voiceText = (sessionFinal + sessionInterim).trim()
+        const base = baseDescriptionRef.current
+        const updated = base
+          ? voiceText
+            ? `${base} ${voiceText}`
+            : base
+          : voiceText
+
+        setDescription(updated)
+        if (errors.description) {
+          setErrors((prev) => ({ ...prev, description: null }))
         }
       }
 
       recognition.onerror = (e) => {
+        console.warn('SpeechRecognition error event:', e.error)
+        isStartingVoiceRef.current = false
         setIsListening(false)
-        if (e.error === 'not-allowed') {
-          setVoiceNotice('Microphone access was denied. Please allow microphone permission or type directly.')
-        } else if (e.error !== 'no-speech') {
-          setVoiceNotice('Voice recognition encountered an issue. You can continue typing directly.')
+
+        switch (e.error) {
+          case 'not-allowed':
+          case 'permission-denied':
+          case 'service-not-allowed':
+            setVoiceNotice('Microphone access was denied. Please allow microphone permissions in your browser to use voice input.')
+            break
+          case 'no-speech':
+            // No speech detected - silently complete without error banner
+            break
+          case 'audio-capture':
+            setVoiceNotice('No microphone was detected. Please ensure your microphone is connected and enabled.')
+            break
+          case 'network':
+            setVoiceNotice('Speech recognition network error. Please check your internet connection or continue typing.')
+            break
+          case 'language-not-supported':
+            setVoiceNotice('The selected language is not supported for voice recognition on this device.')
+            break
+          case 'aborted':
+            // User manually stopped or switched away
+            break
+          default:
+            setVoiceNotice('Voice recognition was interrupted. You can try again or continue typing directly.')
+            break
         }
       }
 
       recognition.onend = () => {
         setIsListening(false)
+        isStartingVoiceRef.current = false
       }
 
       recognition.start()
     } catch (err) {
-      console.warn('SpeechRecognition error:', err)
+      console.warn('SpeechRecognition start exception:', err)
+      isStartingVoiceRef.current = false
       setIsListening(false)
-      setVoiceNotice('Unable to start speech recognition. Please type your description.')
+      setVoiceNotice('Unable to start voice input. Please type your description directly.')
     }
   }
 
@@ -372,7 +581,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
     }
 
     const randomNum = Math.floor(1000 + Math.random() * 9000)
-    const refId = `SETU-2026-${randomNum}`
+    const refId = `SETU-CIT-2026-${randomNum}`
 
     const formattedDate = new Date().toLocaleDateString('en-US', {
       month: 'short',
@@ -504,7 +713,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
           </button>
         </div>
 
-        <div className="bg-white border border-[#94BCB2] rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-xs">
+        <div className="bg-white border border-[#BFD9D2] rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-xs">
           {/* Success Header */}
           <div className="text-center max-w-xl mx-auto space-y-3">
             <div className="w-16 h-16 rounded-2xl bg-[#DCEFEA] text-[#176B5B] flex items-center justify-center mx-auto shadow-xs">
@@ -523,7 +732,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
           </div>
 
           {/* Reference ID Banner */}
-          <div className="mt-8 max-w-xl mx-auto bg-[#F7FAF9] border border-[#94BCB2] rounded-2xl p-5 sm:p-6 text-center space-y-2">
+          <div className="mt-8 max-w-xl mx-auto bg-[#F7FAF9] border border-[#BFD9D2] rounded-2xl p-5 sm:p-6 text-center space-y-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#5C726E]">
               Your Reference ID
             </span>
@@ -533,7 +742,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
               </span>
               <button
                 onClick={handleCopyRef}
-                className="p-2 rounded-lg bg-white border border-[#94BCB2] text-[#5C726E] hover:text-[#176B5B] hover:border-[#176B5B] transition-colors cursor-pointer text-xs font-medium inline-flex items-center gap-1.5"
+                className="p-2 rounded-lg bg-white border border-[#BFD9D2] text-[#5C726E] hover:text-[#176B5B] hover:border-[#176B5B] transition-colors cursor-pointer text-xs font-medium inline-flex items-center gap-1.5"
                 title="Copy Reference ID"
               >
                 {copiedRef ? (
@@ -560,7 +769,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
           </div>
 
           {/* Status Progression Preview */}
-          <div className="mt-8 max-w-3xl mx-auto bg-white border border-[#94BCB2]/70 rounded-2xl p-5 sm:p-6 space-y-4">
+          <div className="mt-8 max-w-3xl mx-auto bg-white border border-[#BFD9D2]/70 rounded-2xl p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-syne text-sm sm:text-base font-bold text-[#1F2A28]">
                 Initial Status Progression
@@ -601,21 +810,21 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
 
           {/* Submitted Summary Details */}
           <div className="mt-6 max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
-            <div className="p-4 bg-[#F7FAF9] rounded-xl border border-[#94BCB2]/60 space-y-1">
+            <div className="p-4 bg-[#F7FAF9] rounded-xl border border-[#BFD9D2]/60 space-y-1">
               <span className="text-[#5C726E] font-medium block">Issue Title</span>
               <span className="font-semibold text-[#1F2A28] line-clamp-2">{submittedIssue.title}</span>
             </div>
-            <div className="p-4 bg-[#F7FAF9] rounded-xl border border-[#94BCB2]/60 space-y-1">
+            <div className="p-4 bg-[#F7FAF9] rounded-xl border border-[#BFD9D2]/60 space-y-1">
               <span className="text-[#5C726E] font-medium block">Category &amp; Department</span>
               <span className="font-semibold text-[#1F2A28]">
                 {submittedIssue.category} • {submittedIssue.targetDepartment}
               </span>
             </div>
-            <div className="p-4 bg-[#F7FAF9] rounded-xl border border-[#94BCB2]/60 space-y-1">
+            <div className="p-4 bg-[#F7FAF9] rounded-xl border border-[#BFD9D2]/60 space-y-1">
               <span className="text-[#5C726E] font-medium block">Location</span>
               <span className="font-semibold text-[#1F2A28] line-clamp-2">{submittedIssue.location}</span>
             </div>
-            <div className="p-4 bg-[#F7FAF9] rounded-xl border border-[#94BCB2]/60 space-y-1">
+            <div className="p-4 bg-[#F7FAF9] rounded-xl border border-[#BFD9D2]/60 space-y-1">
               <span className="text-[#5C726E] font-medium block">Privacy &amp; Danger Level</span>
               <span className="font-semibold text-[#1F2A28]">
                 {submittedIssue.isAnonymous ? 'Reported Anonymously' : `Reported by ${CITIZEN_USER_PROFILE.name}`}
@@ -638,7 +847,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
             </button>
             <button
               onClick={onCancel}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white border border-[#94BCB2] hover:bg-[#F7FAF9] text-[#1F2A28] text-sm font-semibold transition-colors cursor-pointer text-center"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white border border-[#BFD9D2] hover:bg-[#F7FAF9] text-[#1F2A28] text-sm font-semibold transition-colors cursor-pointer text-center"
             >
               Back to Dashboard
             </button>
@@ -679,7 +888,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
 
       {/* In-page Toast Notification for Draft Save */}
       {draftSavedToast && (
-        <div className="p-3.5 bg-[#DCEFEA] border border-[#94BCB2] rounded-xl text-xs font-semibold text-[#176B5B] flex items-center justify-between gap-3 animate-fade-in shadow-2xs">
+        <div className="p-3.5 bg-[#DCEFEA] border border-[#BFD9D2] rounded-xl text-xs font-semibold text-[#176B5B] flex items-center justify-between gap-3 animate-fade-in shadow-2xs">
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-[#176B5B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
@@ -691,9 +900,9 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
       )}
 
       {/* Unified Wide Form Container */}
-      <div className="bg-white border border-[#94BCB2] rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xs">
+      <div className="bg-white border border-[#BFD9D2] rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xs">
         {/* Top Header */}
-        <div className="pb-6 border-b border-[#94BCB2]/50">
+        <div className="pb-6 border-b border-[#BFD9D2]/50">
           <h1 className="font-syne text-2xl sm:text-3xl font-bold text-[#1F2A28] tracking-tight">
             Raise an Issue
           </h1>
@@ -704,7 +913,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-7">
           {/* Privacy Row */}
-          <div className="bg-[#F7FAF9] border border-[#94BCB2]/70 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4">
+          <div className="bg-[#F7FAF9] border border-[#BFD9D2]/70 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4">
             <div className="flex items-start gap-3">
               <span className="w-9 h-9 rounded-xl bg-[#DCEFEA] text-[#176B5B] flex items-center justify-center shrink-0 mt-0.5">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -767,7 +976,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
               className={`w-full px-4 py-3 rounded-xl border bg-white text-[#1F2A28] placeholder-[#5C726E]/60 text-sm transition-all focus:outline-hidden focus:ring-2 focus:ring-[#176B5B]/20 ${
                 touched.title && errors.title
                   ? 'border-[#E07A4E] focus:border-[#E07A4E]'
-                  : 'border-[#94BCB2] focus:border-[#176B5B]'
+                  : 'border-[#BFD9D2] hover:border-[#176B5B]/60 focus:border-[#176B5B]'
               }`}
             />
             {touched.title && errors.title && (
@@ -793,7 +1002,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
 
             {/* Restored Draft Evidence Metadata Notice */}
             {restoredEvidenceMeta.length > 0 && (
-              <div className="p-3 bg-[#F7FAF9] border border-[#94BCB2] rounded-xl space-y-1.5 text-xs">
+              <div className="p-3 bg-[#F7FAF9] border border-[#BFD9D2] rounded-xl space-y-1.5 text-xs">
                 <div className="flex items-center justify-between text-[#5C726E]">
                   <span className="font-semibold text-[#1F2A28]">
                     Previously attached in saved draft ({restoredEvidenceMeta.length} files):
@@ -804,7 +1013,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                   {restoredEvidenceMeta.map((meta, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#94BCB2] text-[#1F2A28] text-[11px]"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#BFD9D2] text-[#1F2A28] text-[11px]"
                     >
                       <svg className="w-3 h-3 text-[#5C726E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -842,7 +1051,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                 className={`sm:col-span-2 border-2 border-dashed rounded-2xl p-5 sm:p-6 text-center cursor-pointer transition-all duration-200 ${
                   isDragging
                     ? 'border-[#176B5B] bg-[#DCEFEA]/30 scale-[1.01]'
-                    : 'border-[#94BCB2] hover:border-[#176B5B] bg-[#F7FAF9]/60 hover:bg-[#F7FAF9]'
+                    : 'border-[#BFD9D2] hover:border-[#176B5B] bg-[#F7FAF9]/60 hover:bg-[#F7FAF9]'
                 }`}
               >
                 <input
@@ -855,7 +1064,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                   }}
                   className="hidden"
                 />
-                <div className="w-11 h-11 rounded-2xl bg-white border border-[#94BCB2] text-[#176B5B] flex items-center justify-center mx-auto mb-2.5 shadow-2xs">
+                <div className="w-11 h-11 rounded-2xl bg-white border border-[#BFD9D2] text-[#176B5B] flex items-center justify-center mx-auto mb-2.5 shadow-2xs">
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
@@ -870,22 +1079,12 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                 </p>
               </div>
 
-              {/* Open Camera Card */}
+              {/* Open Camera Card (Live getUserMedia Capture) */}
               <div
-                onClick={() => cameraInputRef.current?.click()}
-                className="border-2 border-dashed border-[#94BCB2] hover:border-[#176B5B] rounded-2xl p-5 sm:p-6 text-center cursor-pointer bg-[#F7FAF9]/60 hover:bg-[#F7FAF9] transition-all flex flex-col items-center justify-center group"
+                onClick={handleOpenCamera}
+                className="border-2 border-dashed border-[#BFD9D2] hover:border-[#176B5B] rounded-2xl p-5 sm:p-6 text-center cursor-pointer bg-[#F7FAF9]/60 hover:bg-[#F7FAF9] transition-all flex flex-col items-center justify-center group"
               >
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => {
-                    if (e.target.files) handleFiles(e.target.files)
-                  }}
-                  className="hidden"
-                />
-                <div className="w-11 h-11 rounded-2xl bg-white border border-[#94BCB2] text-[#176B5B] group-hover:border-[#176B5B] flex items-center justify-center mx-auto mb-2.5 shadow-2xs transition-colors">
+                <div className="w-11 h-11 rounded-2xl bg-white border border-[#BFD9D2] text-[#176B5B] group-hover:border-[#176B5B] flex items-center justify-center mx-auto mb-2.5 shadow-2xs transition-colors">
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                     <circle cx="12" cy="13" r="4" />
@@ -900,20 +1099,113 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
               </div>
             </div>
 
+            {/* Camera Fallback / Error Message */}
+            {cameraError && (
+              <div className="p-3 bg-[#E07A4E]/10 border border-[#E07A4E]/30 rounded-xl text-xs text-[#E07A4E] font-medium flex items-center justify-between gap-2 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>{cameraError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCameraError(null)}
+                  className="text-[#E07A4E] hover:text-[#1F2A28] font-bold text-sm px-1.5 py-0.5"
+                  aria-label="Dismiss error"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {/* In-Page Live Camera Preview Overlay Modal */}
+            {isCameraActive && (
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="camera-modal-title"
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1F2A28]/60 backdrop-blur-xs animate-fadeIn"
+                onClick={handleCloseCamera}
+              >
+                <div
+                  className="relative w-full max-w-lg bg-white rounded-2xl border border-[#BFD9D2] shadow-2xl p-5 sm:p-6 space-y-4 animate-scaleUp"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-[#BFD9D2]/50">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-[#E07A4E] animate-pulse" />
+                      <h3 id="camera-modal-title" className="font-syne text-base font-bold text-[#1F2A28]">
+                        Live Camera Preview
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCloseCamera}
+                      aria-label="Close camera"
+                      className="p-1.5 rounded-lg text-[#5C726E] hover:text-[#176B5B] hover:bg-[#F7FAF9] transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Live Video Feed */}
+                  <div className="relative w-full bg-black rounded-xl overflow-hidden aspect-4/3 flex items-center justify-center shadow-inner">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#1F2A28]/70 text-white text-[11px] font-mono flex items-center gap-1.5 backdrop-blur-xs">
+                      <span className="w-2 h-2 rounded-full bg-[#176B5B]" />
+                      <span>LIVE FEED</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleCloseCamera}
+                      className="flex-1 py-2.5 px-4 rounded-xl border border-[#BFD9D2] bg-[#F7FAF9] text-[#1F2A28] font-outfit font-semibold text-sm hover:bg-[#DCEFEA]/50 transition-colors cursor-pointer"
+                    >
+                      Cancel / Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCapturePhoto}
+                      className="flex-1 py-2.5 px-4 rounded-xl bg-[#176B5B] text-white font-outfit font-semibold text-sm hover:bg-[#125548] transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <circle cx="12" cy="12" r="3" strokeWidth="2.5" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                      </svg>
+                      <span>Capture Photo</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Attached Files List */}
             {evidenceFiles.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
                 {evidenceFiles.map((file) => (
                   <div
                     key={file.id}
-                    className="flex items-center justify-between gap-2 p-2.5 bg-[#F7FAF9] border border-[#94BCB2] rounded-xl text-xs"
+                    className="flex items-center justify-between gap-2 p-2.5 bg-[#F7FAF9] border border-[#BFD9D2] rounded-xl text-xs"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       {file.previewUrl ? (
                         <img
                           src={file.previewUrl}
                           alt="Preview"
-                          className="w-9 h-9 rounded-lg object-cover border border-[#94BCB2]/60 shrink-0"
+                          className="w-9 h-9 rounded-lg object-cover border border-[#BFD9D2]/60 shrink-0"
                         />
                       ) : (
                         <span className="w-9 h-9 rounded-lg bg-[#DCEFEA] text-[#176B5B] flex items-center justify-center shrink-0">
@@ -960,7 +1252,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                   isListening
                     ? 'bg-[#176B5B] text-white border-[#176B5B] animate-pulse'
-                    : 'bg-[#F7FAF9] text-[#176B5B] border-[#94BCB2] hover:bg-[#DCEFEA]'
+                    : 'bg-[#F7FAF9] text-[#176B5B] border-[#BFD9D2] hover:bg-[#DCEFEA]'
                 }`}
                 title="Speak to dictate description"
               >
@@ -989,14 +1281,19 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                 className={`w-full px-4 py-3 rounded-xl border bg-white text-[#1F2A28] placeholder-[#5C726E]/60 text-sm transition-all focus:outline-hidden focus:ring-2 focus:ring-[#176B5B]/20 ${
                   touched.description && errors.description
                     ? 'border-[#E07A4E] focus:border-[#E07A4E]'
-                    : 'border-[#94BCB2] focus:border-[#176B5B]'
+                    : 'border-[#BFD9D2] hover:border-[#176B5B]/60 focus:border-[#176B5B]'
                 }`}
               />
             </div>
 
             {voiceNotice && (
-              <div className="p-3 bg-[#F7FAF9] border border-[#94BCB2] rounded-xl text-xs text-[#5C726E] flex items-center justify-between gap-2">
-                <span>{voiceNotice}</span>
+              <div className="p-3 bg-[#F7FAF9] border border-[#BFD9D2] rounded-xl text-xs text-[#5C726E] flex items-center justify-between gap-2 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[#176B5B] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{voiceNotice}</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => setVoiceNotice(null)}
@@ -1020,7 +1317,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
           </div>
 
           {/* 4. Immediate Danger */}
-          <div className="bg-[#F7FAF9] border border-[#94BCB2]/70 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-[#F7FAF9] border border-[#BFD9D2]/70 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <span className="font-syne text-sm sm:text-base font-bold text-[#1F2A28] block">
                 Is this issue causing immediate danger?
@@ -1040,7 +1337,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                   !immediateDanger
                     ? 'bg-white text-[#176B5B] border-[#176B5B] shadow-2xs font-bold'
-                    : 'bg-transparent text-[#5C726E] border-[#94BCB2] hover:bg-white'
+                    : 'bg-transparent text-[#5C726E] border-[#BFD9D2] hover:bg-white'
                 }`}
               >
                 No
@@ -1054,7 +1351,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border flex items-center gap-1.5 ${
                   immediateDanger
                     ? 'bg-[#E07A4E] text-white border-[#E07A4E] shadow-2xs'
-                    : 'bg-transparent text-[#5C726E] border-[#94BCB2] hover:bg-white hover:text-[#E07A4E]'
+                    : 'bg-transparent text-[#5C726E] border-[#BFD9D2] hover:bg-white hover:text-[#E07A4E]'
                 }`}
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1087,7 +1384,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                   className={`w-full appearance-none px-4 py-3 rounded-xl border bg-white text-[#1F2A28] text-sm pr-10 transition-all focus:outline-hidden focus:ring-2 focus:ring-[#176B5B]/20 cursor-pointer ${
                     touched.category && errors.category
                       ? 'border-[#E07A4E] focus:border-[#E07A4E]'
-                      : 'border-[#94BCB2] focus:border-[#176B5B]'
+                      : 'border-[#BFD9D2] hover:border-[#176B5B]/60 focus:border-[#176B5B]'
                   }`}
                 >
                   <option value="">Select Category...</option>
@@ -1128,7 +1425,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                   className={`w-full appearance-none px-4 py-3 rounded-xl border bg-white text-[#1F2A28] text-sm pr-10 transition-all focus:outline-hidden focus:ring-2 focus:ring-[#176B5B]/20 cursor-pointer ${
                     touched.targetDepartment && errors.targetDepartment
                       ? 'border-[#E07A4E] focus:border-[#E07A4E]'
-                      : 'border-[#94BCB2] focus:border-[#176B5B]'
+                      : 'border-[#BFD9D2] hover:border-[#176B5B]/60 focus:border-[#176B5B]'
                   }`}
                 >
                   <option value="">Select Department...</option>
@@ -1174,7 +1471,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                 className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                   dateOption === 'today'
                     ? 'bg-[#176B5B] text-white border-[#176B5B]'
-                    : 'bg-white text-[#5C726E] border-[#94BCB2] hover:bg-[#F7FAF9]'
+                    : 'bg-white text-[#5C726E] border-[#BFD9D2] hover:bg-[#F7FAF9]'
                 }`}
               >
                 Today ({getTodayStr()})
@@ -1189,7 +1486,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                 className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                   dateOption === 'yesterday'
                     ? 'bg-[#176B5B] text-white border-[#176B5B]'
-                    : 'bg-white text-[#5C726E] border-[#94BCB2] hover:bg-[#F7FAF9]'
+                    : 'bg-white text-[#5C726E] border-[#BFD9D2] hover:bg-[#F7FAF9]'
                 }`}
               >
                 Yesterday
@@ -1203,7 +1500,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                 className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                   dateOption === 'custom'
                     ? 'bg-[#176B5B] text-white border-[#176B5B]'
-                    : 'bg-white text-[#5C726E] border-[#94BCB2] hover:bg-[#F7FAF9]'
+                    : 'bg-white text-[#5C726E] border-[#BFD9D2] hover:bg-[#F7FAF9]'
                 }`}
               >
                 Choose Date
@@ -1217,7 +1514,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                     markDirty()
                     setObservedDate(e.target.value)
                   }}
-                  className="px-3 py-1.5 rounded-xl border border-[#94BCB2] text-xs text-[#1F2A28] focus:outline-hidden focus:border-[#176B5B]"
+                  className="px-3 py-1.5 rounded-xl border border-[#BFD9D2] text-xs text-[#1F2A28] focus:outline-hidden focus:border-[#176B5B]"
                 />
               )}
             </div>
@@ -1241,10 +1538,10 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
               </button>
             </div>
 
-            <div className="bg-[#F7FAF9] border border-[#94BCB2] rounded-2xl p-4 sm:p-5 space-y-3">
+            <div className="bg-[#F7FAF9] border border-[#BFD9D2] rounded-2xl p-4 sm:p-5 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <span className="w-9 h-9 rounded-xl bg-white border border-[#94BCB2] text-[#176B5B] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <span className="w-9 h-9 rounded-xl bg-white border border-[#BFD9D2] text-[#176B5B] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                       <circle cx="12" cy="10" r="3" />
@@ -1306,7 +1603,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
 
               {/* Binary Choice after Successful Detection: Use This Location / Correct Manually */}
               {locationState === 'success' && detectedAddress && (
-                <div className="pt-2.5 border-t border-[#94BCB2]/40 flex flex-wrap items-center gap-2.5 animate-fade-in">
+                <div className="pt-2.5 border-t border-[#BFD9D2]/40 flex flex-wrap items-center gap-2.5 animate-fade-in">
                   <button
                     type="button"
                     onClick={() => {
@@ -1317,7 +1614,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border inline-flex items-center gap-1.5 ${
                       locationConfirmed
                         ? 'bg-[#176B5B] text-white border-[#176B5B] shadow-2xs'
-                        : 'bg-white text-[#176B5B] border-[#94BCB2] hover:bg-[#DCEFEA]/30'
+                        : 'bg-white text-[#176B5B] border-[#BFD9D2] hover:bg-[#DCEFEA]/30'
                     }`}
                   >
                     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1333,7 +1630,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                       setLocationConfirmed(false)
                       setShowManualLocation(true)
                     }}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white text-[#5C726E] hover:text-[#1F2A28] border border-[#94BCB2] hover:bg-[#F7FAF9] transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white text-[#5C726E] hover:text-[#1F2A28] border border-[#BFD9D2] hover:bg-[#F7FAF9] transition-colors cursor-pointer"
                   >
                     Correct Manually
                   </button>
@@ -1341,7 +1638,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
               )}
 
               {/* Validation Escape Hatch */}
-              <div className="pt-2 border-t border-[#94BCB2]/40 flex items-center justify-between text-xs">
+              <div className="pt-2 border-t border-[#BFD9D2]/40 flex items-center justify-between text-xs">
                 <label className="inline-flex items-center gap-2 text-[#5C726E] cursor-pointer">
                   <input
                     type="checkbox"
@@ -1354,7 +1651,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                         if (errors.location) setErrors((prev) => ({ ...prev, location: null }))
                       }
                     }}
-                    className="rounded border-[#94BCB2] text-[#176B5B] focus:ring-[#176B5B]"
+                    className="rounded border-[#BFD9D2] text-[#176B5B] focus:ring-[#176B5B]"
                   />
                   <span>Location unavailable (skip location verification)</span>
                 </label>
@@ -1363,7 +1660,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
 
             {/* Manual Location Fields (Revealed on click) */}
             {showManualLocation && (
-              <div className="p-4 sm:p-5 bg-white border border-[#94BCB2] rounded-2xl space-y-4 animate-fade-in">
+              <div className="p-4 sm:p-5 bg-white border border-[#BFD9D2] rounded-2xl space-y-4 animate-fade-in">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#5C726E]">
                   Manual Address Entry
                 </span>
@@ -1379,7 +1676,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                         if (errors.location) setErrors((prev) => ({ ...prev, location: null }))
                       }}
                       placeholder="e.g. 11th Street, Gandhi Nagar"
-                      className="w-full px-3 py-2 rounded-lg border border-[#94BCB2] text-xs focus:outline-hidden focus:border-[#176B5B]"
+                      className="w-full px-3 py-2 rounded-lg border border-[#BFD9D2] text-xs focus:outline-hidden focus:border-[#176B5B]"
                     />
                   </div>
                   <div className="space-y-1">
@@ -1393,7 +1690,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                         if (errors.location) setErrors((prev) => ({ ...prev, location: null }))
                       }}
                       placeholder="e.g. Tiruppur"
-                      className="w-full px-3 py-2 rounded-lg border border-[#94BCB2] text-xs focus:outline-hidden focus:border-[#176B5B]"
+                      className="w-full px-3 py-2 rounded-lg border border-[#BFD9D2] text-xs focus:outline-hidden focus:border-[#176B5B]"
                     />
                   </div>
                   <div className="space-y-1">
@@ -1406,7 +1703,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                         setManualAddress((prev) => ({ ...prev, state: e.target.value }))
                       }}
                       placeholder="State"
-                      className="w-full px-3 py-2 rounded-lg border border-[#94BCB2] text-xs focus:outline-hidden focus:border-[#176B5B]"
+                      className="w-full px-3 py-2 rounded-lg border border-[#BFD9D2] text-xs focus:outline-hidden focus:border-[#176B5B]"
                     />
                   </div>
                   <div className="space-y-1">
@@ -1419,7 +1716,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                         setManualAddress((prev) => ({ ...prev, pincode: e.target.value }))
                       }}
                       placeholder="e.g. 641603"
-                      className="w-full px-3 py-2 rounded-lg border border-[#94BCB2] text-xs focus:outline-hidden focus:border-[#176B5B]"
+                      className="w-full px-3 py-2 rounded-lg border border-[#BFD9D2] text-xs focus:outline-hidden focus:border-[#176B5B]"
                     />
                   </div>
                 </div>
@@ -1439,7 +1736,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
           </div>
 
           {/* 8. Live Progress Notifications */}
-          <div className="bg-[#F7FAF9] border border-[#94BCB2]/70 rounded-2xl p-4 sm:p-5 space-y-3">
+          <div className="bg-[#F7FAF9] border border-[#BFD9D2]/70 rounded-2xl p-4 sm:p-5 space-y-3">
             <div>
               <h4 className="font-syne text-sm sm:text-base font-bold text-[#1F2A28]">
                 Receive updates
@@ -1459,7 +1756,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                     markDirty()
                     setNotificationChannels((prev) => ({ ...prev, whatsapp: e.target.checked }))
                   }}
-                  className="w-4 h-4 rounded border-[#94BCB2] text-[#176B5B] focus:ring-[#176B5B] cursor-pointer"
+                  className="w-4 h-4 rounded border-[#BFD9D2] text-[#176B5B] focus:ring-[#176B5B] cursor-pointer"
                 />
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4 text-[#176B5B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1478,7 +1775,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
                     markDirty()
                     setNotificationChannels((prev) => ({ ...prev, sms: e.target.checked }))
                   }}
-                  className="w-4 h-4 rounded border-[#94BCB2] text-[#176B5B] focus:ring-[#176B5B] cursor-pointer"
+                  className="w-4 h-4 rounded border-[#BFD9D2] text-[#176B5B] focus:ring-[#176B5B] cursor-pointer"
                 />
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4 text-[#176B5B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1492,12 +1789,12 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
           </div>
 
           {/* Bottom Action Area: LEFT Cancel - CENTER Save as Draft - RIGHT Submit Issue */}
-          <div className="pt-6 border-t border-[#94BCB2]/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="pt-6 border-t border-[#BFD9D2]/50 flex flex-col sm:flex-row items-center justify-between gap-4">
             <button
               type="button"
               onClick={handleCancelClick}
               disabled={isSubmitting}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white border border-[#94BCB2] hover:bg-[#F7FAF9] text-[#1F2A28] text-sm font-semibold transition-colors cursor-pointer text-center"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white border border-[#BFD9D2] hover:bg-[#F7FAF9] text-[#1F2A28] text-sm font-semibold transition-colors cursor-pointer text-center"
             >
               Cancel
             </button>
@@ -1548,7 +1845,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
       {/* Discard Unsaved Changes Confirmation Modal */}
       {showDiscardModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1F2A28]/40 backdrop-blur-xs animate-fade-in font-outfit">
-          <div className="bg-white rounded-2xl border border-[#94BCB2] max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-4 animate-scale-in">
+          <div className="bg-white rounded-2xl border border-[#BFD9D2] max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-4 animate-scale-in">
             <div className="flex items-center gap-3">
               <span className="w-10 h-10 rounded-xl bg-[#E07A4E]/15 text-[#E07A4E] flex items-center justify-center shrink-0">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1575,7 +1872,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
               <button
                 type="button"
                 onClick={() => setShowDiscardModal(false)}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white border border-[#94BCB2] hover:bg-[#F7FAF9] text-[#1F2A28] text-xs font-semibold transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white border border-[#BFD9D2] hover:bg-[#F7FAF9] text-[#1F2A28] text-xs font-semibold transition-colors cursor-pointer"
               >
                 Keep Editing
               </button>

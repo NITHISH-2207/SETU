@@ -3,9 +3,11 @@
     "brand": "SETU",
     "portalBadge": "नागरिक पोर्टल",
     "home": "होम",
+    "myComplaints": "मेरी शिकायतें",
     "checkStatus": "स्थिति जांचें",
     "notifications": "सूचनाएं",
     "profile": "प्रोफ़ाइल",
+    "myProfile": "मेरी प्रोफ़ाइल",
     "language": "भाषा",
     "logout": "लॉग आउट",
     "switchRole": "पोर्टल बदलें"
