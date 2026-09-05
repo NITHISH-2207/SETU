@@ -12,7 +12,9 @@ import StudentLogin from './pages/University/StudentLogin.jsx'
 import StudentSignup from './pages/University/StudentSignup.jsx'
 import MentorLogin from './pages/University/MentorLogin.jsx'
 import MentorSignup from './pages/University/MentorSignup.jsx'
-import UniversityDashboardPlaceholder from './pages/University/components/UniversityDashboardPlaceholder.jsx'
+import AdminDashboard from './pages/University/dashboard/AdminDashboard.jsx'
+import MentorDashboard from './pages/University/dashboard/MentorDashboard.jsx'
+import StudentDashboard from './pages/University/dashboard/StudentDashboard.jsx'
 import { STAKEHOLDER_ROLES } from './pages/Auth/rolesData.jsx'
 
 function App() {
@@ -207,26 +209,23 @@ function App() {
         />
       )}
 
-      {/* University Placeholder Dashboards */}
+      {/* Authenticated University Dashboards */}
       {currentScreen === 'university-admin-dashboard' && (
-        <UniversityDashboardPlaceholder
-          roleType="admin"
+        <AdminDashboard
           userProfile={authenticatedUniversityUser || {}}
           onLogout={() => handleNavigate('landing')}
         />
       )}
 
       {currentScreen === 'university-student-dashboard' && (
-        <UniversityDashboardPlaceholder
-          roleType="student"
+        <StudentDashboard
           userProfile={authenticatedUniversityUser || {}}
           onLogout={() => handleNavigate('landing')}
         />
       )}
 
       {currentScreen === 'university-mentor-dashboard' && (
-        <UniversityDashboardPlaceholder
-          roleType="mentor"
+        <MentorDashboard
           userProfile={authenticatedUniversityUser || {}}
           onLogout={() => handleNavigate('landing')}
         />

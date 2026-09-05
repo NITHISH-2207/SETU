@@ -4,17 +4,22 @@
  */
 
 export const MOCK_UNIVERSITIES = [
-  { id: 'u1', name: 'Anna University, Chennai', state: 'Tamil Nadu', code: 'AU-CHE' },
-  { id: 'u2', name: 'Indian Institute of Technology Madras (IIT Madras)', state: 'Tamil Nadu', code: 'IIT-M' },
-  { id: 'u3', name: 'PSG College of Technology, Coimbatore', state: 'Tamil Nadu', code: 'PSG-CBE' },
-  { id: 'u4', name: 'National Institute of Technology, Tiruchirappalli (NITT)', state: 'Tamil Nadu', code: 'NITT' },
-  { id: 'u5', name: 'Coimbatore Institute of Technology (CIT)', state: 'Tamil Nadu', code: 'CIT-CBE' },
-  { id: 'u6', name: 'Amrita Vishwa Vidyapeetham, Coimbatore', state: 'Tamil Nadu', code: 'AVV' },
-  { id: 'u7', name: 'Vellore Institute of Technology (VIT)', state: 'Tamil Nadu', code: 'VIT-VEL' },
-  { id: 'u8', name: 'SRM Institute of Science and Technology, Chennai', state: 'Tamil Nadu', code: 'SRM-IST' },
-  { id: 'u9', name: 'Indian Institute of Science (IISc), Bengaluru', state: 'Karnataka', code: 'IISC' },
-  { id: 'u10', name: 'Thiagarajar College of Engineering, Madurai', state: 'Tamil Nadu', code: 'TCE-MDU' },
-  { id: 'u11', name: 'Kongu Engineering College, Perundurai', state: 'Tamil Nadu', code: 'KEC-ERD' },
+  { id: 'u1', name: 'Anna University, Chennai', state: 'Tamil Nadu', code: 'AU-CHE', domainType: 'Engineering & Technology' },
+  { id: 'u2', name: 'Indian Institute of Technology Madras (IIT Madras)', state: 'Tamil Nadu', code: 'IIT-M', domainType: 'Engineering & Technology' },
+  { id: 'u3', name: 'PSG College of Technology, Coimbatore', state: 'Tamil Nadu', code: 'PSG-CBE', domainType: 'Engineering & Technology' },
+  { id: 'u4', name: 'National Institute of Technology, Tiruchirappalli (NITT)', state: 'Tamil Nadu', code: 'NITT', domainType: 'Engineering & Technology' },
+  { id: 'u5', name: 'Coimbatore Institute of Technology (CIT)', state: 'Tamil Nadu', code: 'CIT-CBE', domainType: 'Engineering & Technology' },
+  { id: 'u6', name: 'Amrita Vishwa Vidyapeetham, Coimbatore', state: 'Tamil Nadu', code: 'AVV', domainType: 'Multidisciplinary' },
+  { id: 'u7', name: 'Vellore Institute of Technology (VIT)', state: 'Tamil Nadu', code: 'VIT-VEL', domainType: 'Engineering & Technology' },
+  { id: 'u8', name: 'SRM Institute of Science and Technology, Chennai', state: 'Tamil Nadu', code: 'SRM-IST', domainType: 'Engineering & Technology' },
+  { id: 'u9', name: 'Indian Institute of Science (IISc), Bengaluru', state: 'Karnataka', code: 'IISC', domainType: 'Science & Advanced Research' },
+  { id: 'u10', name: 'Thiagarajar College of Engineering, Madurai', state: 'Tamil Nadu', code: 'TCE-MDU', domainType: 'Engineering & Technology' },
+  { id: 'u11', name: 'Kongu Engineering College, Perundurai', state: 'Tamil Nadu', code: 'KEC-ERD', domainType: 'Engineering & Technology' },
+  { id: 'u12', name: 'Tamil Nadu Agricultural University (TNAU), Coimbatore', state: 'Tamil Nadu', code: 'TNAU-CBE', domainType: 'Agriculture & Life Sciences' },
+  { id: 'u13', name: 'Madras Medical College (MMC), Chennai', state: 'Tamil Nadu', code: 'MMC-CHE', domainType: 'Medical & Healthcare Sciences' },
+  { id: 'u14', name: 'National Law School of India University (NLSIU), Bengaluru', state: 'Karnataka', code: 'NLSIU-BLR', domainType: 'Law & Public Policy' },
+  { id: 'u15', name: 'S-VYASA Yoga University, Bengaluru', state: 'Karnataka', code: 'SVYASA-BLR', domainType: 'Yoga & Integrative Health' },
+  { id: 'u16', name: 'National Institute of Ayurveda (NIA), Jaipur', state: 'Rajasthan', code: 'NIA-JAI', domainType: 'Ayurveda & Traditional Medicine' },
 ]
 
 export const SUGGESTED_DOMAINS = [
