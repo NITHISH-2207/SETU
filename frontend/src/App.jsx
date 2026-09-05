@@ -25,14 +25,24 @@ function App() {
   const [authenticatedUniversityUser, setAuthenticatedUniversityUser] = useState(null)
 
   const handleNavigate = (target, options = {}) => {
+    let nextScreen = target
     if (target === 'login') {
       setAuthMode('login')
-      setCurrentScreen('role-selection')
+      nextScreen = 'role-selection'
     } else if (target === 'signup') {
       setAuthMode('signup')
-      setCurrentScreen('role-selection')
-    } else {
-      setCurrentScreen(target)
+      nextScreen = 'role-selection'
+    }
+
+    setCurrentScreen(nextScreen)
+
+    try {
+      if (nextScreen === 'citizen-portal') {
+        localStorage.setItem('setu_is_logged_in', 'true')
+        localStorage.setItem('setu_active_screen', 'citizen-portal')
+      }
+    } catch (err) {
+      console.warn('Session persistence error:', err)
     }
 
     if (options.role) {
@@ -40,6 +50,18 @@ function App() {
     }
 
     window.scrollTo({ top: 0, behavior: 'instant' })
+  }
+
+  const handleCitizenLogout = () => {
+    try {
+      localStorage.removeItem('setu_is_logged_in')
+      localStorage.removeItem('setu_active_screen')
+      localStorage.removeItem('setu_citizen_active_tab')
+      localStorage.removeItem('setu_selected_issue_id')
+    } catch (err) {
+      console.warn('Failed to clear session on logout:', err)
+    }
+    handleNavigate('landing')
   }
 
   const handleRoleSelected = (role) => {
@@ -58,10 +80,24 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
+  const handleSplashFinish = () => {
+    try {
+      const isLoggedIn = localStorage.getItem('setu_is_logged_in') === 'true'
+      const savedScreen = localStorage.getItem('setu_active_screen')
+      if (isLoggedIn && savedScreen) {
+        setCurrentScreen(savedScreen)
+        return
+      }
+    } catch (err) {
+      console.warn('Failed to restore session after splash:', err)
+    }
+    handleNavigate('landing')
+  }
+
   return (
     <div className="w-full min-h-screen bg-white text-[#1F2A28]">
       {currentScreen === 'splash' && (
-        <SplashScreen onFinish={() => handleNavigate('landing')} />
+        <SplashScreen onFinish={handleSplashFinish} />
       )}
 
       {currentScreen === 'landing' && (
@@ -108,7 +144,7 @@ function App() {
       {/* Citizen Portal */}
       {currentScreen === 'citizen-portal' && (
         <CitizenPortal
-          onLogout={() => handleNavigate('landing')}
+          onLogout={handleCitizenLogout}
           onNavigate={handleNavigate}
         />
       )}

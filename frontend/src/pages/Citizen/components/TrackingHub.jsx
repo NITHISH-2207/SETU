@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { useAppTranslation } from '../../../hooks/useAppTranslation'
 import { StatusBadge } from './RecentIssuesList'
+import DeleteComplaintModal from './DeleteComplaintModal'
+import { isComplaintDeletable } from '../citizenComplaintStore'
 
-function TrackingHub({ issues = [], selectedIssueId, onBack, onSelectIssue, onToggleUpvote }) {
+function TrackingHub({ issues = [], selectedIssueId, onBack, onSelectIssue, onToggleUpvote, onDeleteComplaint }) {
   const { t } = useAppTranslation()
   const [searchInput, setSearchInput] = useState('')
   const [searchError, setSearchError] = useState(false)
   const [appealRecorded, setAppealRecorded] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
   // Find the active issue
   const activeIssue = issues.find((i) => i.id === selectedIssueId) || issues[0]
@@ -437,8 +440,53 @@ function TrackingHub({ issues = [], selectedIssueId, onBack, onSelectIssue, onTo
                 {activeIssue.location}
               </p>
               <p className="text-xs sm:text-sm text-[#5C726E] mt-0.5">
-                Jurisdiction: {activeIssue.ward}
+                Jurisdiction: {activeIssue.ward || 'Ward 12, Gandhi Nagar, Tiruppur'}
               </p>
+            </div>
+
+            {/* Additional Grievance Parameters */}
+            <div className="pt-4 border-t border-[#BFD9D2]/50 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
+              <div className="p-3 bg-[#F7FAF9] rounded-xl border border-[#BFD9D2]/60">
+                <span className="block text-[11px] font-bold text-[#5C726E] uppercase tracking-wider mb-0.5">
+                  Target Department
+                </span>
+                <span className="font-semibold text-[#176B5B]">
+                  {activeIssue.targetDepartment || 'Municipal Authority'}
+                </span>
+              </div>
+
+              <div className="p-3 bg-[#F7FAF9] rounded-xl border border-[#BFD9D2]/60">
+                <span className="block text-[11px] font-bold text-[#5C726E] uppercase tracking-wider mb-0.5">
+                  Issue Observed Date
+                </span>
+                <span className="font-semibold text-[#1F2A28]">
+                  {activeIssue.observedDate || activeIssue.date}
+                </span>
+              </div>
+
+              <div className="p-3 bg-[#F7FAF9] rounded-xl border border-[#BFD9D2]/60">
+                <span className="block text-[11px] font-bold text-[#5C726E] uppercase tracking-wider mb-0.5">
+                  Report Type
+                </span>
+                <span className="font-semibold text-[#1F2A28]">
+                  {activeIssue.isAnonymous ? 'Anonymous Citizen Report' : 'Verified Citizen Report'}
+                </span>
+              </div>
+
+              <div className="p-3 bg-[#F7FAF9] rounded-xl border border-[#BFD9D2]/60">
+                <span className="block text-[11px] font-bold text-[#5C726E] uppercase tracking-wider mb-0.5">
+                  Notification Alerts
+                </span>
+                <span className="font-semibold text-[#176B5B]">
+                  {activeIssue.notificationChannels?.whatsapp && activeIssue.notificationChannels?.sms
+                    ? 'WhatsApp & SMS Active'
+                    : activeIssue.notificationChannels?.whatsapp
+                    ? 'WhatsApp Alerts Active'
+                    : activeIssue.notificationChannels?.sms
+                    ? 'SMS Alerts Active'
+                    : 'Web Portal Updates'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -470,7 +518,42 @@ function TrackingHub({ issues = [], selectedIssueId, onBack, onSelectIssue, onTo
             </div>
           </div>
 
-          {/* 3. Resolution & Appeal (When Resolved) */}
+          {/* 3. Delete Complaint / Processing Notice Card */}
+          <div className="bg-white border border-[#BFD9D2] rounded-2xl p-5 shadow-2xs">
+            {isComplaintDeletable(activeIssue.status) ? (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-syne text-sm font-bold text-[#1F2A28]">
+                    Manage Complaint
+                  </h4>
+                  <p className="text-xs text-[#5C726E] mt-0.5">
+                    This complaint is in its preliminary stage and can be withdrawn if resolved or filed by mistake.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#E07A4E]/40 text-xs font-semibold text-[#E07A4E] hover:bg-[#E07A4E]/10 hover:border-[#E07A4E] transition-colors shrink-0 self-start sm:self-auto cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Delete Complaint</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2.5 text-xs text-[#5C726E]">
+                <svg className="w-4 h-4 text-[#176B5B] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="leading-relaxed">
+                  This complaint is already being processed and can no longer be deleted.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* 4. Resolution & Appeal (When Resolved) */}
           {activeIssue.status === 'resolved' && (
             <div className="bg-[#DCEFEA]/60 border border-[#176B5B]/40 rounded-2xl p-6 shadow-2xs space-y-3.5 animate-fade-in">
               <div className="flex items-center gap-2.5 text-[#176B5B]">
@@ -573,6 +656,19 @@ function TrackingHub({ issues = [], selectedIssueId, onBack, onSelectIssue, onTo
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteComplaintModal
+        isOpen={isDeleteModalOpen}
+        complaintId={activeIssue.id}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirmDelete={() => {
+          setIsDeleteModalOpen(false)
+          if (onDeleteComplaint) {
+            onDeleteComplaint(activeIssue.id)
+          }
+        }}
+      />
     </div>
   )
 }

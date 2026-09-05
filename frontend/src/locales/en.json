@@ -3,9 +3,11 @@
     "brand": "SETU",
     "portalBadge": "Citizen Portal",
     "home": "Home",
+    "myComplaints": "My Complaints",
     "checkStatus": "Check Status",
     "notifications": "Notifications",
     "profile": "Profile",
+    "myProfile": "My Profile",
     "language": "Language",
     "logout": "Sign Out",
     "switchRole": "Switch Portal"
