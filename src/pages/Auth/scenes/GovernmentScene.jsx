@@ -1,86 +1,70 @@
-import SetuNexus from './SetuNexus.jsx'
-
 function GovernmentScene() {
   return (
-    <div className="relative w-full h-[320px] bg-white rounded-xl border border-[#BFD9D2]/70 p-4 overflow-hidden flex items-center justify-center select-none">
-      {/* Background SVG Governance Coordination Grid */}
+    <div className="relative w-full h-full min-h-[260px] sm:min-h-[300px] lg:min-h-[340px] bg-white rounded-xl border border-[#BFD9D2]/60 p-6 sm:p-8 overflow-hidden flex items-center justify-center select-none shadow-2xs">
+      {/* Prominent Line-Art Doodle for Government / Authority */}
       <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        viewBox="0 0 400 320"
+        className="w-56 h-56 sm:w-68 sm:h-68 lg:w-76 lg:h-76 max-w-full max-h-full"
+        viewBox="0 0 200 200"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Coordination Geometric Lines */}
-        <path
-          d="M80 75 L200 160"
-          stroke="#176B5B"
-          strokeWidth="1.5"
-          className="animate-dash-flow"
-        />
-        <path
-          d="M80 245 L200 160"
-          stroke="#176B5B"
-          strokeWidth="1.5"
-          className="animate-dash-flow"
-        />
-        <path
-          d="M200 160 L320 160"
-          stroke="#176B5B"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
-
         {/* Ambient Ring */}
-        <circle cx="200" cy="160" r="110" stroke="#DCEFEA" strokeWidth="1" strokeDasharray="4 4" />
+        <circle cx="100" cy="100" r="75" stroke="#DCEFEA" strokeWidth="1.5" strokeDasharray="6 6" />
+
+        {/* Civic Building & Columns Doodle */}
+        <g className="animate-float-slow">
+          {/* Pediment / Triangular Roof */}
+          <polygon
+            points="100,55 145,80 55,80"
+            stroke="#176B5B"
+            strokeWidth="2.5"
+            fill="#DCEFEA"
+            strokeLinejoin="round"
+          />
+
+          {/* Roof Base Architrave */}
+          <rect
+            x="52"
+            y="80"
+            width="96"
+            height="8"
+            rx="1"
+            stroke="#176B5B"
+            strokeWidth="2"
+            fill="#FFFFFF"
+          />
+
+          {/* 4 Pillars */}
+          <line x1="65" y1="88" x2="65" y2="132" stroke="#176B5B" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="88" y1="88" x2="88" y2="132" stroke="#176B5B" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="112" y1="88" x2="112" y2="132" stroke="#176B5B" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="135" y1="88" x2="135" y2="132" stroke="#176B5B" strokeWidth="2.5" strokeLinecap="round" />
+
+          {/* Foundation Steps */}
+          <rect
+            x="48"
+            y="132"
+            width="104"
+            height="8"
+            rx="1"
+            stroke="#176B5B"
+            strokeWidth="2"
+            fill="#DCEFEA"
+          />
+        </g>
+
+        {/* Policy Coordination / Approval Checkmark Badge */}
+        <g className="animate-float-delayed">
+          <circle cx="145" cy="65" r="12" fill="#E07A4E" stroke="#FFFFFF" strokeWidth="2" />
+          <path
+            d="M140 65 L144 69 L151 61"
+            stroke="#FFFFFF"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </g>
       </svg>
-
-      {/* Top Left: Public Department / Ward Card */}
-      <div className="absolute top-6 left-6 animate-float-slow z-10">
-        <div className="bg-[#F7FAF9] border border-[#BFD9D2] rounded-xl p-3 shadow-2xs font-outfit text-left">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-5 h-5 rounded-md bg-[#176B5B] text-white flex items-center justify-center text-[10px]">
-              🏛️
-            </div>
-            <span className="text-[11px] font-bold text-[#176B5B]">Public Administration</span>
-          </div>
-          <p className="text-[9px] text-[#5C726E]">Ward 24 infrastructure pipeline</p>
-        </div>
-      </div>
-
-      {/* Bottom Left: Policy Alignment Node */}
-      <div className="absolute bottom-6 left-8 animate-float-delayed z-10">
-        <div className="bg-white border border-[#BFD9D2] rounded-lg px-3 py-2 shadow-2xs flex items-center gap-2 font-outfit">
-          <span className="w-2 h-2 rounded-full bg-[#176B5B] animate-pulse" />
-          <div className="text-left">
-            <p className="text-[10px] font-bold text-[#1F2A28]">Scheme Matching</p>
-            <p className="text-[9px] text-[#5C726E]">State welfare program #302</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Center: SETU Nexus */}
-      <div className="relative z-20">
-        <SetuNexus size="md" />
-      </div>
-
-      {/* Top Right: Departmental Sync Status */}
-      <div className="absolute top-7 right-8 animate-float-slow z-10">
-        <div className="bg-white border border-[#BFD9D2] rounded-full px-3 py-1 shadow-2xs flex items-center gap-1.5 font-outfit text-[11px] text-[#176B5B]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#176B5B]" />
-          <span className="font-semibold">Civic Depts</span> Synced
-        </div>
-      </div>
-
-      {/* Right: Coordinated Action Node */}
-      <div className="absolute right-6 top-[38%] z-10 animate-float-delayed flex flex-col items-center">
-        <div className="bg-[#F7FAF9] border-2 border-[#E07A4E] rounded-xl p-3 shadow-xs font-outfit text-center">
-          <div className="w-7 h-7 rounded-full bg-[#E07A4E] text-white mx-auto flex items-center justify-center font-bold text-xs mb-1">
-            ⚖️
-          </div>
-          <h4 className="font-syne text-[11px] font-bold text-[#1F2A28]">Coordinated Action</h4>
-          <p className="text-[9px] text-[#5C726E]">Inter-agency execution</p>
-        </div>
-      </div>
     </div>
   )
 }

@@ -47,7 +47,7 @@ function LandingPage({ onNavigate }) {
             {/* Hero Copy */}
             <div className="lg:col-span-7 flex flex-col items-start text-left">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase font-outfit text-[#176B5B] bg-[#DCEFEA]/60 border border-[#BFD9D2]/60 mb-6">
-                A Platform for Collaborative Problem Solving
+                Collaborative Problem Solving
               </span>
 
               <h1 className="font-syne text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#1F2A28] leading-[1.12]">
@@ -55,7 +55,7 @@ function LandingPage({ onNavigate }) {
               </h1>
 
               <p className="mt-6 font-outfit text-base sm:text-lg text-[#1F2A28]/80 leading-relaxed max-w-2xl font-normal">
-                SETU connects citizens, institutions, experts, industry, and government to collaboratively address societal issues.
+                Connecting citizens, institutions, experts, industry, and government to resolve societal issues.
               </p>
 
               {/* Action Buttons */}
@@ -138,12 +138,12 @@ function LandingPage({ onNavigate }) {
                   <circle cx="50" cy="200" r="3" fill="#FFFFFF" />
                   <text x="50" y="224" fill="#5C726E" fontSize="10" fontFamily="Outfit" textAnchor="middle" fontWeight="500">Institution</text>
 
-                  {/* Central SETU Nexus Node */}
+                  {/* Central SETU Hub Node */}
                   <circle cx="200" cy="140" r="14" fill="#DCEFEA" stroke="#176B5B" strokeWidth="2" />
                   <circle cx="200" cy="140" r="6" fill="#176B5B" />
                   <circle cx="200" cy="140" r="2.5" fill="#FFFFFF" />
                   <text x="200" y="174" fill="#176B5B" fontSize="12" fontFamily="Syne" textAnchor="middle" fontWeight="700">SETU</text>
-                  <text x="200" y="188" fill="#5C726E" fontSize="9" fontFamily="Outfit" textAnchor="middle">Nexus &amp; Match</text>
+                  <text x="200" y="188" fill="#5C726E" fontSize="9" fontFamily="Outfit" textAnchor="middle">Match &amp; Connect</text>
 
                   {/* Downstream Path to Action */}
                   <path
@@ -185,7 +185,7 @@ function LandingPage({ onNavigate }) {
                 How SETU Works
               </h2>
               <p className="mt-3 font-outfit text-base text-[#1F2A28]/70">
-                A streamlined pathway taking ideas from ground reality to collaborative execution.
+                A streamlined pathway from ground reality to collaborative execution.
               </p>
             </div>
 
@@ -201,7 +201,7 @@ function LandingPage({ onNavigate }) {
                     Submit Issue
                   </h3>
                   <p className="text-sm text-[#1F2A28]/80 leading-relaxed font-normal">
-                    Citizens and organizations submit societal issues with context and local evidence.
+                    Citizens and organizations submit societal issues with context and evidence.
                   </p>
                 </div>
                 <div className="mt-6 pt-4 border-t border-[#BFD9D2]/40 text-xs text-[#5C726E]">
@@ -219,7 +219,7 @@ function LandingPage({ onNavigate }) {
                     Curate &amp; Match
                   </h3>
                   <p className="text-sm text-[#1F2A28]/80 leading-relaxed font-normal">
-                    SETU helps categorize and connect issues with the right expertise, researchers, and institutions.
+                    Categorize and route issues to relevant researchers and institutions.
                   </p>
                 </div>
                 <div className="mt-6 pt-4 border-t border-[#BFD9D2]/40 text-xs text-[#5C726E]">
@@ -237,7 +237,7 @@ function LandingPage({ onNavigate }) {
                     Collaborative Action
                   </h3>
                   <p className="text-sm text-[#1F2A28]/80 leading-relaxed font-normal">
-                    Universities, industry, and authorities collaborate towards a sustainable solution.
+                    Institutions, industry, and authorities execute sustainable solutions.
                   </p>
                 </div>
                 <div className="mt-6 pt-4 border-t border-[#BFD9D2]/40 text-xs text-[#5C726E]">

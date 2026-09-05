@@ -6,8 +6,8 @@ export const STAKEHOLDER_ROLES = [
     shortName: 'Citizen',
     tagline: 'Grassroots Engagement',
     headline: 'Your voice can start meaningful change.',
-    storyText: 'Share what matters in your community and connect with institutions, researchers, and leaders who can act.',
-    description: 'Submit societal issues with local context, provide community evidence, and track grassroots progress toward real-world solutions.',
+    storyText: 'Share issues in your community and connect with partners who can act.',
+    description: 'Submit societal issues with local context and track grassroots progress.',
     iconSvg: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
@@ -28,8 +28,8 @@ export const STAKEHOLDER_ROLES = [
     shortName: 'University / Institution',
     tagline: 'Research & Innovation',
     headline: 'Turn real-world needs into meaningful solutions.',
-    storyText: 'Transform community issues into academic research, student innovations, faculty studies, and verified pilot projects.',
-    description: 'Connect student initiatives and academic research directly to verified societal issues for pilot projects, technical studies, and innovation.',
+    storyText: 'Transform community issues into academic research, student projects, and verified pilots.',
+    description: 'Connect student initiatives and academic research directly to verified societal issues.',
     iconSvg: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
@@ -50,8 +50,8 @@ export const STAKEHOLDER_ROLES = [
     shortName: 'Industry / CSR',
     tagline: 'Resources & Scale',
     headline: 'Support innovation. Create measurable impact.',
-    storyText: 'Channel Corporate Social Responsibility (CSR) funds, technical infrastructure, and industrial capacity toward vetted societal solutions.',
-    description: 'Direct Corporate Social Responsibility (CSR) resources, technology capabilities, and industrial expertise toward high-impact societal needs.',
+    storyText: 'Channel CSR funds, technical infrastructure, and resources toward vetted societal solutions.',
+    description: 'Direct CSR resources, technology, and industry expertise toward high-impact societal needs.',
     iconSvg: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
@@ -72,8 +72,8 @@ export const STAKEHOLDER_ROLES = [
     shortName: 'Government / Authority',
     tagline: 'Policy & Execution',
     headline: 'Connecting public needs with coordinated action.',
-    storyText: 'Access verified, community-vetted public issues to coordinate administrative welfare, municipal execution, and policy follow-through.',
-    description: 'Access verified, categorized public issues to guide municipal action, welfare allocations, policy interventions, and administrative follow-through.',
+    storyText: 'Access verified public issues to coordinate municipal execution and policy follow-through.',
+    description: 'Access verified public issues to guide municipal action, welfare allocations, and policy interventions.',
     iconSvg: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 21h18" />
@@ -86,7 +86,7 @@ export const STAKEHOLDER_ROLES = [
     ),
     badge: 'Public Administration',
     whatYouCanDo: [
-      'Coordinate societal challenges',
+      'Coordinate societal issues',
       'Connect stakeholders',
       'Track implementation and outcomes',
     ],

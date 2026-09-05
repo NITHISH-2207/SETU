@@ -1,86 +1,74 @@
-import SetuNexus from './SetuNexus.jsx'
-
 function IndustryScene() {
   return (
-    <div className="relative w-full h-[320px] bg-white rounded-xl border border-[#BFD9D2]/70 p-4 overflow-hidden flex items-center justify-center select-none">
-      {/* Background SVG Scaling Pipeline */}
+    <div className="relative w-full h-full min-h-[260px] sm:min-h-[300px] lg:min-h-[340px] bg-white rounded-xl border border-[#BFD9D2]/60 p-6 sm:p-8 overflow-hidden flex items-center justify-center select-none shadow-2xs">
+      {/* Prominent Line-Art Doodle for Industry / CSR */}
       <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        viewBox="0 0 400 320"
+        className="w-56 h-56 sm:w-68 sm:h-68 lg:w-76 lg:h-76 max-w-full max-h-full"
+        viewBox="0 0 200 200"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Converging Resource Vector Paths */}
+        {/* Ambient Ring */}
+        <circle cx="100" cy="100" r="75" stroke="#DCEFEA" strokeWidth="1.5" strokeDasharray="6 6" />
+
+        {/* Enterprise Building & Factory Skyline Doodle */}
+        <g className="animate-float-slow">
+          {/* Main Tower */}
+          <rect
+            x="65"
+            y="70"
+            width="32"
+            height="75"
+            rx="2"
+            stroke="#176B5B"
+            strokeWidth="2.5"
+            fill="#DCEFEA"
+          />
+          {/* Windows */}
+          <circle cx="76" cy="85" r="2.5" fill="#176B5B" />
+          <circle cx="86" cy="85" r="2.5" fill="#176B5B" />
+          <circle cx="76" cy="100" r="2.5" fill="#176B5B" />
+          <circle cx="86" cy="100" r="2.5" fill="#176B5B" />
+          <circle cx="76" cy="115" r="2.5" fill="#176B5B" />
+          <circle cx="86" cy="115" r="2.5" fill="#176B5B" />
+
+          {/* Secondary Facility Building */}
+          <rect
+            x="103"
+            y="95"
+            width="34"
+            height="50"
+            rx="2"
+            stroke="#176B5B"
+            strokeWidth="2"
+            fill="#FFFFFF"
+          />
+          {/* Facility Windows */}
+          <rect x="110" y="105" width="8" height="8" rx="1" fill="#DCEFEA" />
+          <rect x="122" y="105" width="8" height="8" rx="1" fill="#DCEFEA" />
+        </g>
+
+        {/* CSR Growth Trend / Gear Doodle */}
+        <g className="animate-float-delayed">
+          {/* Upward Resource Flow Arrow */}
+          <path
+            d="M135 85 L150 70 M150 70 L140 70 M150 70 L150 80"
+            stroke="#E07A4E"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="150" cy="70" r="3" fill="#E07A4E" />
+        </g>
+
+        {/* Ambient Scaling Base Line */}
         <path
-          d="M80 80 C140 80, 150 160, 200 160"
-          stroke="#176B5B"
+          d="M50 145 H150"
+          stroke="#BFD9D2"
           strokeWidth="2"
-          className="animate-dash-flow"
-        />
-        <path
-          d="M80 240 C140 240, 150 160, 200 160"
-          stroke="#176B5B"
-          strokeWidth="2"
-          className="animate-dash-flow"
-        />
-        <path
-          d="M200 160 L320 160"
-          stroke="#176B5B"
-          strokeWidth="3"
           strokeLinecap="round"
         />
-
-        {/* Ambient Ring */}
-        <circle cx="200" cy="160" r="105" stroke="#DCEFEA" strokeWidth="1" strokeDasharray="6 6" />
       </svg>
-
-      {/* Top Left: CSR Fund Card */}
-      <div className="absolute top-6 left-6 animate-float-slow z-10">
-        <div className="bg-[#F7FAF9] border border-[#BFD9D2] rounded-xl p-3 shadow-2xs font-outfit text-left">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-5 h-5 rounded-md bg-[#176B5B] text-white flex items-center justify-center text-[10px]">
-              💼
-            </div>
-            <span className="text-[11px] font-bold text-[#176B5B]">CSR Initiative</span>
-          </div>
-          <p className="text-[9px] text-[#5C726E]">Sanitation infrastructure fund</p>
-        </div>
-      </div>
-
-      {/* Bottom Left: Tech / Industrial Infrastructure Node */}
-      <div className="absolute bottom-6 left-8 animate-float-delayed z-10">
-        <div className="bg-white border border-[#BFD9D2] rounded-lg px-3 py-2 shadow-2xs flex items-center gap-2 font-outfit">
-          <span className="w-2 h-2 rounded-full bg-[#176B5B] animate-pulse" />
-          <div className="text-left">
-            <p className="text-[10px] font-bold text-[#1F2A28]">Industrial Scale</p>
-            <p className="text-[9px] text-[#5C726E]">Manufacturing &amp; logistics</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Center: SETU Nexus */}
-      <div className="relative z-20">
-        <SetuNexus size="md" />
-      </div>
-
-      {/* Top Right: Transparent Tracking Pill */}
-      <div className="absolute top-7 right-8 animate-float-slow z-10">
-        <div className="bg-white border border-[#BFD9D2] rounded-full px-3 py-1 shadow-2xs flex items-center gap-1.5 font-outfit text-[11px] text-[#176B5B]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#176B5B]" />
-          <span className="font-semibold">CSR Audit</span> Verified
-        </div>
-      </div>
-
-      {/* Right: Scaled Social Impact Node */}
-      <div className="absolute right-6 top-[38%] z-10 animate-float-delayed flex flex-col items-center">
-        <div className="bg-[#F7FAF9] border-2 border-[#E07A4E] rounded-xl p-3 shadow-xs font-outfit text-center">
-          <div className="w-7 h-7 rounded-full bg-[#E07A4E] text-white mx-auto flex items-center justify-center font-bold text-xs mb-1">
-            ⚡
-          </div>
-          <h4 className="font-syne text-[11px] font-bold text-[#1F2A28]">Scaled Impact</h4>
-          <p className="text-[9px] text-[#5C726E]">12,000+ citizens served</p>
-        </div>
-      </div>
     </div>
   )
 }

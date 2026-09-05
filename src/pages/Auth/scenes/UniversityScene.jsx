@@ -1,86 +1,66 @@
-import SetuNexus from './SetuNexus.jsx'
-
 function UniversityScene() {
   return (
-    <div className="relative w-full h-[320px] bg-white rounded-xl border border-[#BFD9D2]/70 p-4 overflow-hidden flex items-center justify-center select-none">
-      {/* Background SVG Innovation Circuits */}
+    <div className="relative w-full h-full min-h-[260px] sm:min-h-[300px] lg:min-h-[340px] bg-white rounded-xl border border-[#BFD9D2]/60 p-6 sm:p-8 overflow-hidden flex items-center justify-center select-none shadow-2xs">
+      {/* Prominent Line-Art Doodle for University / Academia */}
       <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        viewBox="0 0 400 320"
+        className="w-56 h-56 sm:w-68 sm:h-68 lg:w-76 lg:h-76 max-w-full max-h-full"
+        viewBox="0 0 200 200"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Research Loop Lines */}
-        <path
-          d="M70 90 C130 50, 160 110, 200 160"
-          stroke="#176B5B"
-          strokeWidth="1.5"
-          className="animate-dash-flow"
-        />
-        <path
-          d="M70 230 C130 270, 160 210, 200 160"
-          stroke="#176B5B"
-          strokeWidth="1.5"
-          className="animate-dash-flow"
-        />
-        <path
-          d="M200 160 C250 160, 280 160, 330 160"
-          stroke="#176B5B"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
+        {/* Soft Ambient Orbit */}
+        <circle cx="100" cy="100" r="75" stroke="#DCEFEA" strokeWidth="1.5" strokeDasharray="6 6" />
 
-        {/* Ambient Ring */}
-        <circle cx="200" cy="160" r="100" stroke="#DCEFEA" strokeWidth="1" strokeDasharray="4 4" />
+        {/* Floating Mortarboard / Academic Cap Doodle */}
+        <g className="animate-float-slow">
+          {/* Cap Diamond */}
+          <polygon
+            points="100,50 145,65 100,80 55,65"
+            stroke="#176B5B"
+            strokeWidth="2.5"
+            fill="#DCEFEA"
+            strokeLinejoin="round"
+          />
+          {/* Cap Base */}
+          <path
+            d="M75 73 V88 C75 96, 125 96, 125 88 V73"
+            stroke="#176B5B"
+            strokeWidth="2"
+            fill="#F7FAF9"
+          />
+          {/* Tassel */}
+          <path
+            d="M145 65 V85"
+            stroke="#E07A4E"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <circle cx="145" cy="87" r="3" fill="#E07A4E" />
+        </g>
+
+        {/* Floating Open Book Doodle */}
+        <g className="animate-float-delayed">
+          {/* Left Page */}
+          <path
+            d="M65 130 C78 126, 92 127, 100 132 V152 C92 147, 78 146, 65 150 Z"
+            stroke="#176B5B"
+            strokeWidth="2"
+            fill="#FFFFFF"
+            strokeLinejoin="round"
+          />
+          {/* Right Page */}
+          <path
+            d="M135 130 C122 126, 108 127, 100 132 V152 C108 147, 122 146, 135 150 Z"
+            stroke="#176B5B"
+            strokeWidth="2"
+            fill="#FFFFFF"
+            strokeLinejoin="round"
+          />
+        </g>
+
+        {/* Idea Spark / Innovation Dot */}
+        <circle cx="100" cy="108" r="4" fill="#E07A4E" className="animate-pulse" />
       </svg>
-
-      {/* Top Left: Academic R&D Block */}
-      <div className="absolute top-6 left-6 animate-float-slow z-10">
-        <div className="bg-[#F7FAF9] border border-[#BFD9D2] rounded-xl p-3 shadow-2xs font-outfit text-left">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-5 h-5 rounded-md bg-[#176B5B] text-white flex items-center justify-center text-[10px]">
-              🏛️
-            </div>
-            <span className="text-[11px] font-bold text-[#176B5B]">Research Faculty</span>
-          </div>
-          <p className="text-[9px] text-[#5C726E]">Water filtration pilot #14</p>
-        </div>
-      </div>
-
-      {/* Bottom Left: Student Project Node */}
-      <div className="absolute bottom-6 left-8 animate-float-delayed z-10">
-        <div className="bg-white border border-[#BFD9D2] rounded-lg px-3 py-2 shadow-2xs flex items-center gap-2 font-outfit">
-          <span className="w-2 h-2 rounded-full bg-[#176B5B] animate-pulse" />
-          <div className="text-left">
-            <p className="text-[10px] font-bold text-[#1F2A28]">Student Capstone</p>
-            <p className="text-[9px] text-[#5C726E]">Field testing group</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Center: SETU Nexus */}
-      <div className="relative z-20">
-        <SetuNexus size="md" />
-      </div>
-
-      {/* Top Right: Grant / Impact Indicator */}
-      <div className="absolute top-7 right-8 animate-float-slow z-10">
-        <div className="bg-white border border-[#BFD9D2] rounded-full px-3 py-1 shadow-2xs flex items-center gap-1.5 font-outfit text-[11px] text-[#176B5B]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#E07A4E]" />
-          <span className="font-semibold">R&amp;D Grant</span> Approved
-        </div>
-      </div>
-
-      {/* Right: Validated Prototype Output */}
-      <div className="absolute right-6 top-[40%] z-10 animate-float-delayed flex flex-col items-center">
-        <div className="bg-[#F7FAF9] border-2 border-[#E07A4E] rounded-xl p-3 shadow-xs font-outfit text-center">
-          <div className="w-7 h-7 rounded-full bg-[#E07A4E]/20 text-[#E07A4E] mx-auto flex items-center justify-center font-bold text-xs mb-1">
-            ✓
-          </div>
-          <h4 className="font-syne text-[11px] font-bold text-[#1F2A28]">Validated Pilot</h4>
-          <p className="text-[9px] text-[#5C726E]">Ready for deployment</p>
-        </div>
-      </div>
     </div>
   )
 }
