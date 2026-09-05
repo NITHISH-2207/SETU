@@ -45,7 +45,7 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
 
           {/* Right Column: Focused Auth Form */}
           <div className="lg:col-span-6 flex flex-col justify-center">
-            <div className="bg-[#F7FAF9] border border-[#BFD9D2] rounded-2xl p-8 sm:p-10 lg:p-12 shadow-2xs">
+            <div className="bg-linear-to-br from-[#F7FAF9] via-[#F7FAF9] to-[#DCEFEA]/30 border border-[#BFD9D2] rounded-2xl p-8 sm:p-10 lg:p-12 shadow-2xs">
               {/* Subtle Role Indicator Badge */}
               <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#BFD9D2]/50">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-[#BFD9D2] text-[#176B5B] font-outfit shadow-2xs">
@@ -67,8 +67,8 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
                   Join SETU as a
                   <span className="block text-[#176B5B]">{roleName}</span>
                 </h1>
-                <p className="mt-2 font-outfit text-sm sm:text-base text-[#5C726E]">
-                  Become part of a connected ecosystem working toward societal action.
+                <p className="mt-2 font-outfit text-sm text-[#5C726E]">
+                  Create your account to get started.
                 </p>
               </div>
 

@@ -40,8 +40,8 @@
   }
 }
 
-/* SETU Nexus Splash Loader Animations */
-@keyframes nexusCirculate {
+/* SETU Core & Orbit Animations */
+@keyframes orbitRotate {
   from {
     transform: rotate(0deg);
   }
@@ -50,7 +50,7 @@
   }
 }
 
-@keyframes nexusCounterCirculate {
+@keyframes orbitCounter {
   from {
     transform: rotate(360deg);
   }
@@ -59,7 +59,7 @@
   }
 }
 
-@keyframes nexusBreathe {
+@keyframes coreBreathe {
   0%, 100% {
     transform: scale(1);
     box-shadow: 0 4px 14px -2px rgba(23, 107, 91, 0.18);
@@ -148,21 +148,21 @@
   animation: fadeInSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
 }
 
-.animate-splash-nexus-wrap {
+.animate-splash-core-wrap {
   opacity: 0;
   animation: fadeInSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
 }
 
-.animate-nexus-breathe {
-  animation: nexusBreathe 3.5s ease-in-out infinite;
+.animate-core-breathe {
+  animation: coreBreathe 3.5s ease-in-out infinite;
 }
 
-.animate-nexus-circulate {
-  animation: nexusCirculate 4.5s linear infinite;
+.animate-orbit-rotate {
+  animation: orbitRotate 4s linear infinite;
 }
 
-.animate-nexus-counter {
-  animation: nexusCounterCirculate 6s linear infinite;
+.animate-orbit-counter {
+  animation: orbitCounter 6s linear infinite;
 }
 
 .animate-signal-travel {
@@ -196,10 +196,10 @@
   .animate-splash-mark,
   .animate-splash-title,
   .animate-splash-sub,
-  .animate-splash-nexus-wrap,
-  .animate-nexus-breathe,
-  .animate-nexus-circulate,
-  .animate-nexus-counter,
+  .animate-splash-core-wrap,
+  .animate-core-breathe,
+  .animate-orbit-rotate,
+  .animate-orbit-counter,
   .animate-signal-travel,
   .animate-float-slow,
   .animate-float-delayed,
