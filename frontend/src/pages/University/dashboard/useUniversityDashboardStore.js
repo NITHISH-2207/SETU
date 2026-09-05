@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   INITIAL_GOVERNMENT_PROBLEMS,
   INITIAL_APPROVAL_REQUESTS,
@@ -10,6 +10,14 @@ import {
   DASHBOARD_DEPARTMENTS,
   TIME_BASED_STATISTICS,
 } from './universityDashboardData.js'
+
+const STORAGE_KEYS = {
+  PROBLEMS: 'setu_university_problems',
+  APPROVALS: 'setu_university_approvals',
+  CONTRIBUTIONS: 'setu_university_contributions',
+  NOTIFICATIONS: 'setu_university_notifications',
+  READ_SECTIONS: 'setu_university_read_sections',
+}
 
 const generateId = (prefix) => `${prefix}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -58,6 +66,16 @@ export function useUniversityDashboardStore() {
     }
   })
 
+  // 5. Read Sections State (Tracks which navigation sections have been visited and cleared)
+  const [readSections, setReadSections] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.READ_SECTIONS)
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
+
   // Persist to localStorage on change
   useEffect(() => {
     try {
@@ -82,6 +100,12 @@ export function useUniversityDashboardStore() {
       localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications))
     } catch {}
   }, [notifications])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.READ_SECTIONS, JSON.stringify(readSections))
+    } catch {}
+  }, [readSections])
 
   // ==========================================
   // Problem Actions (1 Mentor + 5 Students Constraint)
@@ -304,6 +328,21 @@ export function useUniversityDashboardStore() {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
   }
 
+  const markSectionAsRead = useCallback((role, sectionId) => {
+    if (!role || !sectionId) return
+    const key = `${role}_${sectionId}`
+    setReadSections((prev) => {
+      if (prev[key]) return prev
+      return { ...prev, [key]: true }
+    })
+  }, [])
+
+  const isSectionRead = useCallback((role, sectionId) => {
+    if (!role || !sectionId) return false
+    const key = `${role}_${sectionId}`
+    return Boolean(readSections[key])
+  }, [readSections])
+
   // ==========================================
   // Helper Resolvers
   // ==========================================
@@ -339,6 +378,7 @@ export function useUniversityDashboardStore() {
     approvals,
     contributions,
     notifications,
+    readSections,
     mentors: ALL_MENTORS,
     students: ALL_STUDENTS,
     universities: DASHBOARD_UNIVERSITIES,
@@ -357,6 +397,8 @@ export function useUniversityDashboardStore() {
     addNotification,
     markNotificationAsRead,
     markAllNotificationsAsRead,
+    markSectionAsRead,
+    isSectionRead,
     getMentorById,
     getStudentById,
   }
