@@ -31,7 +31,7 @@ function App() {
 
   const handleRoleSelected = (role) => {
     setSelectedRole(role)
-    setCurrentScreen(authMode === 'login' ? 'auth-login' : 'auth-signup')
+    setCurrentScreen('auth-login')
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
