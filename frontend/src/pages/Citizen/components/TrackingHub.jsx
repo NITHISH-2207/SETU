@@ -186,7 +186,7 @@ function TrackingHub({ issues = [], selectedIssueId, onBack, onSelectIssue, onTo
           B. HORIZONTAL 5-STAGE LIFECYCLE TIMELINE
           ==================================================== */}
       <section className="bg-white border border-[#BFD9D2] rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6">
-        <div className="flex items-center justify-between pb-3 border-b border-[#BFD9D2]/50">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-[#BFD9D2]/50">
           <div>
             <h2 className="font-syne text-lg sm:text-xl font-bold text-[#1F2A28]">
               {t('tracking.timeline')}
@@ -195,84 +195,171 @@ function TrackingHub({ issues = [], selectedIssueId, onBack, onSelectIssue, onTo
               5-Stage Transparent Lifecycle Progress
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#DCEFEA] text-[#176B5B]">
-            <span className="w-2 h-2 rounded-full bg-[#176B5B]" />
-            Stage {currentStepIndex + 1} of 5 Active
-          </span>
+
+          {/* Elegant Unobtrusive Status Legend */}
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs font-medium text-[#5C726E] bg-[#F7FAF9] px-3.5 py-1.5 rounded-xl border border-[#BFD9D2]/60 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#176B5B]" />
+              <span className="text-[#1F2A28]">Completed</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#176B5B] ring-2 ring-[#DCEFEA]" />
+              <span className="text-[#176B5B] font-semibold">Current Stage</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full border-2 border-[#E07A4E] bg-[#E07A4E]/20" />
+              <span className="text-[#E07A4E]">Waiting</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full border-2 border-[#BFD9D2] bg-white" />
+              <span>Upcoming</span>
+            </div>
+          </div>
         </div>
 
         {/* Horizontal Stepper Container (Scrollable on small screens, never shrinking text) */}
         <div className="overflow-x-auto pb-4 pt-2 -mx-2 px-2 scrollbar-thin">
           <div className="min-w-[820px] flex items-start justify-between relative">
             {activeIssue.timeline.map((step, idx) => {
-              const isCompleted = step.completed
-              const isCurrent = idx === currentStepIndex
+              // 4-Stage Status Determination
+              let stageState = 'upcoming'
+              if (activeIssue.status === 'resolved') {
+                stageState = 'completed'
+              } else if (idx < currentStepIndex) {
+                stageState = 'completed'
+              } else if (idx === currentStepIndex) {
+                stageState = 'current'
+              } else if (idx === currentStepIndex + 1) {
+                stageState = 'waiting'
+              } else {
+                stageState = 'upcoming'
+              }
+
               const isLast = idx === activeIssue.timeline.length - 1
+
+              // Connector line color calculation
+              let nextStageState = 'upcoming'
+              if (idx + 1 < activeIssue.timeline.length) {
+                if (activeIssue.status === 'resolved') {
+                  nextStageState = 'completed'
+                } else if (idx + 1 < currentStepIndex) {
+                  nextStageState = 'completed'
+                } else if (idx + 1 === currentStepIndex) {
+                  nextStageState = 'current'
+                } else if (idx + 1 === currentStepIndex + 1) {
+                  nextStageState = 'waiting'
+                } else {
+                  nextStageState = 'upcoming'
+                }
+              }
+
+              let connectorClass = 'bg-[#BFD9D2]/70'
+              if (stageState === 'completed') {
+                if (nextStageState === 'completed' || nextStageState === 'current') {
+                  connectorClass = 'bg-[#176B5B]'
+                } else if (nextStageState === 'waiting') {
+                  connectorClass = 'bg-linear-to-r from-[#176B5B] to-[#E07A4E]'
+                } else {
+                  connectorClass = 'bg-linear-to-r from-[#176B5B] to-[#BFD9D2]'
+                }
+              } else if (stageState === 'current') {
+                if (nextStageState === 'waiting') {
+                  connectorClass = 'bg-linear-to-r from-[#176B5B] to-[#E07A4E]'
+                } else {
+                  connectorClass = 'bg-linear-to-r from-[#176B5B] to-[#BFD9D2]'
+                }
+              }
 
               return (
                 <div key={idx} className="flex-1 relative flex flex-col items-center text-center px-2">
                   {/* Connecting Line between nodes */}
                   {!isLast && (
                     <div
-                      className={`absolute top-5 left-1/2 w-full h-1 z-0 transition-colors duration-300 ${
-                        step.completed && activeIssue.timeline[idx + 1]?.completed
-                          ? 'bg-[#176B5B]'
-                          : step.completed && isCurrent
-                          ? 'bg-linear-to-r from-[#176B5B] to-[#BFD9D2]'
-                          : 'bg-[#BFD9D2]/70'
-                      }`}
+                      className={`absolute top-5 left-1/2 w-full h-1 z-0 transition-colors duration-300 ${connectorClass}`}
                     />
                   )}
 
                   {/* Stage Node */}
                   <div className="relative z-10 mb-3">
-                    <div
-                      className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                        isCompleted
-                          ? 'bg-[#176B5B] text-white shadow-xs'
-                          : isCurrent
-                          ? 'bg-[#176B5B] text-white ring-4 ring-[#DCEFEA] ring-offset-2 ring-offset-white shadow-md animate-pulse'
-                          : 'bg-white border-2 border-[#BFD9D2] text-[#5C726E]'
-                      }`}
-                    >
-                      {isCompleted ? (
+                    {stageState === 'completed' && (
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center bg-[#176B5B] text-white shadow-xs transition-all duration-300">
                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
-                      ) : (
-                        <span>{idx + 1}</span>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {stageState === 'current' && (
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center bg-[#176B5B] text-white ring-4 ring-[#DCEFEA] ring-offset-2 ring-offset-white shadow-md animate-pulse transition-all duration-300">
+                        <span className="w-3 h-3 rounded-full bg-white" />
+                      </div>
+                    )}
+
+                    {stageState === 'waiting' && (
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center border-2 border-[#E07A4E] bg-[#E07A4E]/10 text-[#E07A4E] shadow-2xs transition-all duration-300">
+                        <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                      </div>
+                    )}
+
+                    {stageState === 'upcoming' && (
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center border-2 border-[#BFD9D2] bg-white text-[#5C726E] transition-all duration-300">
+                        <span className="text-xs font-bold">{idx + 1}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Stage Details Card (Preserves full detail) */}
                   <div
-                    className={`w-full p-3.5 sm:p-4 rounded-xl border text-left flex flex-col justify-between min-h-[160px] transition-all ${
-                      isCurrent
-                        ? 'bg-[#F7FAF9] border-[#176B5B] shadow-xs'
-                        : isCompleted
+                    className={`w-full p-3.5 sm:p-4 rounded-xl border text-left flex flex-col justify-between min-h-[175px] transition-all ${
+                      stageState === 'current'
+                        ? 'bg-[#F7FAF9] border-[#176B5B] shadow-xs ring-1 ring-[#176B5B]/20'
+                        : stageState === 'completed'
                         ? 'bg-white border-[#BFD9D2]/80'
+                        : stageState === 'waiting'
+                        ? 'bg-[#F7FAF9]/80 border-[#E07A4E]/40 hover:border-[#E07A4E]'
                         : 'bg-white/60 border-[#BFD9D2]/40 opacity-70'
                     }`}
                   >
                     <div>
-                      {/* Stage Name / Label Key */}
-                      <span
-                        className={`text-xs font-bold uppercase tracking-wider block mb-1 ${
-                          isCurrent
-                            ? 'text-[#176B5B]'
-                            : isCompleted
-                            ? 'text-[#176B5B]'
-                            : 'text-[#5C726E]'
-                        }`}
-                      >
-                        {t(step.labelKey)}
-                      </span>
+                      {/* Status State Tag & Stage Name */}
+                      <div className="flex items-center justify-between gap-1 mb-1.5">
+                        <span
+                          className={`text-xs font-bold uppercase tracking-wider block ${
+                            stageState === 'completed' || stageState === 'current'
+                              ? 'text-[#176B5B]'
+                              : stageState === 'waiting'
+                              ? 'text-[#E07A4E]'
+                              : 'text-[#5C726E]'
+                          }`}
+                        >
+                          {t(step.labelKey)}
+                        </span>
+
+                        {/* Status Label Indicator */}
+                        {stageState === 'current' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#DCEFEA] text-[#176B5B] border border-[#176B5B]/20 shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#176B5B] animate-pulse" />
+                            Active
+                          </span>
+                        )}
+                        {stageState === 'waiting' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E07A4E]/10 text-[#E07A4E] border border-[#E07A4E]/20 shrink-0">
+                            Waiting
+                          </span>
+                        )}
+                      </div>
 
                       {/* Action Title */}
                       <h4
                         className={`font-syne text-xs sm:text-sm font-bold leading-snug ${
-                          isCompleted || isCurrent ? 'text-[#1F2A28]' : 'text-[#5C726E]'
+                          stageState === 'completed' || stageState === 'current'
+                            ? 'text-[#1F2A28]'
+                            : stageState === 'waiting'
+                            ? 'text-[#1F2A28]/90'
+                            : 'text-[#5C726E]'
                         }`}
                       >
                         {step.title}
