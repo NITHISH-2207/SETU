@@ -52,19 +52,19 @@ function TimeFilterStats({ role = 'mentor' }) {
         <div className="p-3.5 bg-[#F7FAF9] border border-[#BFD9D2]/70 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-[#5C726E] uppercase">Government Problems</span>
           <p className="font-syne text-2xl font-bold text-[#176B5B]">{data.totalProblemsReceived}</p>
-          <span className="text-[10px] text-emerald-700 font-medium">+{data.newProblems} newly flagged</span>
+          <span className="text-[10px] text-[#176B5B] font-medium">+{data.newProblems} newly flagged</span>
         </div>
 
         <div className="p-3.5 bg-[#F7FAF9] border border-[#BFD9D2]/70 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-[#5C726E] uppercase">Domain Matches</span>
-          <p className="font-syne text-2xl font-bold text-[#E07A4E]">{data.matchingOpportunities}</p>
+          <p className="font-syne text-2xl font-bold text-[#176B5B]">{data.matchingOpportunities}</p>
           <span className="text-[10px] text-[#5C726E]">Matched to profile</span>
         </div>
 
         <div className="p-3.5 bg-[#F7FAF9] border border-[#BFD9D2]/70 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-[#5C726E] uppercase">Problems Accepted</span>
           <p className="font-syne text-2xl font-bold text-[#1F2A28]">{data.problemsAccepted}</p>
-          <span className="text-[10px] text-purple-700 font-medium">Active Research</span>
+          <span className="text-[10px] text-[#176B5B] font-medium">Active Research</span>
         </div>
 
         <div className="p-3.5 bg-[#F7FAF9] border border-[#BFD9D2]/70 rounded-xl space-y-1">
@@ -72,7 +72,7 @@ function TimeFilterStats({ role = 'mentor' }) {
             {role === 'mentor' ? 'Active Mentees' : 'Peer Collaborators'}
           </span>
           <p className="font-syne text-2xl font-bold text-[#176B5B]">{data.activeMentees}</p>
-          <span className="text-[10px] text-emerald-700 font-medium">{data.contributionsSubmitted} outputs submitted</span>
+          <span className="text-[10px] text-[#176B5B] font-medium">{data.contributionsSubmitted} outputs submitted</span>
         </div>
       </div>
 
@@ -92,7 +92,7 @@ function TimeFilterStats({ role = 'mentor' }) {
                   {bar.count}
                 </span>
                 <div
-                  className="w-full max-w-[36px] bg-linear-to-t from-[#176B5B] to-[#DCEFEA] group-hover:to-[#E07A4E] rounded-t-md transition-all duration-300 shadow-2xs"
+                  className="w-full max-w-[36px] bg-linear-to-t from-[#176B5B] to-[#DCEFEA] group-hover:to-[#176B5B] rounded-t-md transition-all duration-300 shadow-2xs"
                   style={{ height: `${heightPercent}%` }}
                 />
                 <span className="text-[10px] font-medium text-[#5C726E] truncate w-full text-center">
