@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "brand": "SETU",
+    "portalBadge": "Citizen Portal",
+    "home": "Home",
+    "checkStatus": "Check Status",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "language": "Language",
+    "logout": "Sign Out",
+    "switchRole": "Switch Portal"
+  },
+  "dashboard": {
+    "welcomeTitle": "Welcome back, {{name}}",
+    "welcomeSubtitle": "Track your reported community issues and coordinate societal action.",
+    "wardLocation": "11th Street, Gandhi Nagar, Tiruppur",
+    "overview": "Your Overview",
+    "metrics": {
+      "totalReported": "Total Issues",
+      "underReview": "Under Review",
+      "inProgress": "In Progress",
+      "resolved": "Resolved",
+      "communityUpvotes": "Community Support"
+    },
+    "raiseIssue": {
+      "title": "Have a community issue to report?",
+      "description": "Submit issues with local evidence to initiate institutional review and action.",
+      "button": "Raise an Issue",
+      "phase2Badge": "Phase 2 Preview",
+      "modalTitle": "Issue Submission Portal (Phase 2)",
+      "modalDescription": "The full multi-step complaint submission form with geotagging and multi-media evidence upload is currently in development for Phase 2.",
+      "closeModal": "Understood"
+    },
+    "recentIssues": "Recent Issues",
+    "filterAll": "All Issues",
+    "filterActive": "In Progress",
+    "filterResolved": "Resolved",
+    "searchPlaceholder": "Search issues by title, ID, or location...",
+    "noIssuesTitle": "No issues found",
+    "noIssuesDesc": "There are no reported issues matching your current filter.",
+    "viewDetails": "View Details & Track",
+    "upvote": "Support",
+    "upvoted": "Supported"
+  },
+  "status": {
+    "submitted": "Submitted",
+    "underReview": "Under Review",
+    "assigned": "Assigned",
+    "actionTaken": "Action Taken",
+    "resolved": "Resolved"
+  },
+  "tracking": {
+    "trackYourIssue": "Track Your Issue",
+    "trackYourIssueDesc": "Enter your Issue Reference ID to view the latest progress and details.",
+    "quickTrackTitle": "Track Your Issue",
+    "quickTrackPlaceholder": "Enter Issue Reference ID (e.g. SETU-CIT-1042)...",
+    "trackButton": "Track Issue",
+    "backLink": "Dashboard",
+    "backToDashboard": "Dashboard",
+    "issueDetails": "Reported Details",
+    "location": "Location & Ward",
+    "evidence": "Attached Evidence",
+    "timeline": "Status Timeline",
+    "communitySupport": "Community Support",
+    "supportThisIssue": "Support this Issue",
+    "alreadySupported": "Supported by you",
+    "resolutionStatus": "Resolution Status",
+    "resolutionConfirmed": "Verified & Resolved by Authorities",
+    "appealButton": "Appeal / Re-open Issue",
+    "confirmResolution": "Confirm Resolution",
+    "appealNotice": "Your appeal has been recorded for supervisory review.",
+    "notFound": "Issue not found. Please verify the ID."
+  },
+  "chatbot": {
+    "title": "SETU Citizen Assistant",
+    "tooltip": "AI Citizen Chatbot (Phase 2)",
+    "modalTitle": "SETU Citizen Assistant",
+    "modalDescription": "The automated conversational assistant for regional complaint drafting and instant status querying is scheduled for Phase 2."
+  }
+}
