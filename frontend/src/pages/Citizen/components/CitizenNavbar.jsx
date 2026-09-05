@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useAppTranslation } from '../../../hooks/useAppTranslation'
 import { CITIZEN_USER_PROFILE } from '../citizenMockData'
 
-function CitizenNavbar({ activeTab, onTabChange, onLogout, notificationsCount = 2 }) {
+function CitizenNavbar({ activeTab, onTabChange, onLogout, notificationsCount = 2, onOpenDrafts, draftsCount = 0 }) {
   const { t, currentLanguage, changeLanguage, supportedLanguages } = useAppTranslation()
   const [langMenuOpen, setLangMenuOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
@@ -174,7 +174,30 @@ function CitizenNavbar({ activeTab, onTabChange, onLogout, notificationsCount = 
                   <p className="text-xs text-[#5C726E]">{CITIZEN_USER_PROFILE.address}</p>
                   <p className="text-xs text-[#176B5B] font-mono font-medium">{CITIZEN_USER_PROFILE.formattedPhone}</p>
                 </div>
-                <div className="pt-2">
+                <div className="py-1 border-b border-[#BFD9D2]/50">
+                  <button
+                    onClick={() => {
+                      setProfileMenuOpen(false)
+                      if (onOpenDrafts) onOpenDrafts()
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs text-[#1F2A28] hover:bg-[#F7FAF9] rounded-lg font-semibold cursor-pointer flex items-center justify-between transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 text-[#176B5B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                        <polyline points="17 21 17 13 7 13 7 21" />
+                        <polyline points="7 3 7 8 15 8" />
+                      </svg>
+                      <span>Saved Drafts</span>
+                    </div>
+                    {draftsCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E07A4E]/15 text-[#E07A4E]">
+                        {draftsCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+                <div className="pt-1">
                   <button
                     onClick={() => {
                       setProfileMenuOpen(false)

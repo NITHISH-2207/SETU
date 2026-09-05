@@ -3,19 +3,34 @@ import CitizenNavbar from './components/CitizenNavbar.jsx'
 import WelcomeBanner from './components/WelcomeBanner.jsx'
 import OverviewMetrics from './components/OverviewMetrics.jsx'
 import RaiseIssueBanner from './components/RaiseIssueBanner.jsx'
+import RaiseIssueForm from './components/RaiseIssueForm.jsx'
 import RecentIssuesList from './components/RecentIssuesList.jsx'
 import TrackingHub from './components/TrackingHub.jsx'
+import SavedDraftsModal from './components/SavedDraftsModal.jsx'
+import { getSavedDrafts } from './citizenDraftsService.js'
 import ChatbotPlaceholder from './components/ChatbotPlaceholder.jsx'
 import { INITIAL_CITIZEN_ISSUES, CITIZEN_USER_PROFILE } from './citizenMockData.js'
 
 function CitizenPortal({ onLogout }) {
-  const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard' | 'track'
+  const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard' | 'track' | 'raise'
   const [issues, setIssues] = useState(INITIAL_CITIZEN_ISSUES)
   const [selectedIssueId, setSelectedIssueId] = useState(INITIAL_CITIZEN_ISSUES[0].id)
+  const [selectedDraft, setSelectedDraft] = useState(null)
+  const [isDraftsModalOpen, setIsDraftsModalOpen] = useState(false)
+
+  // Derive live drafts count during render
+  const draftsCount = getSavedDrafts().length
 
   const handleSelectIssue = (id) => {
     setSelectedIssueId(id)
+    setSelectedDraft(null)
     setActiveTab('track')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleResumeDraft = (draft) => {
+    setSelectedDraft(draft)
+    setActiveTab('raise')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -41,16 +56,19 @@ function CitizenPortal({ onLogout }) {
       <CitizenNavbar
         activeTab={activeTab}
         onTabChange={(tab) => {
+          setSelectedDraft(null)
           setActiveTab(tab)
           window.scrollTo({ top: 0, behavior: 'instant' })
         }}
         onLogout={onLogout}
         notificationsCount={2}
+        onOpenDrafts={() => setIsDraftsModalOpen(true)}
+        draftsCount={draftsCount}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {activeTab === 'dashboard' ? (
+        {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fade-in">
             {/* 1. Welcome Banner */}
             <WelcomeBanner userName={CITIZEN_USER_PROFILE.name} />
@@ -58,8 +76,14 @@ function CitizenPortal({ onLogout }) {
             {/* 2. Overview Metric Cards */}
             <OverviewMetrics issues={issues} />
 
-            {/* 3. Raise an Issue Hero Banner (Phase 2 Placeholder Modal) */}
-            <RaiseIssueBanner />
+            {/* 3. Raise an Issue Hero Banner - Navigates to dedicated page */}
+            <RaiseIssueBanner
+              onOpen={() => {
+                setSelectedDraft(null)
+                setActiveTab('raise')
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+            />
 
             {/* 4. Recent Issues List with Filters & Live Multi-field Search */}
             <RecentIssuesList
@@ -68,7 +92,28 @@ function CitizenPortal({ onLogout }) {
               onToggleUpvote={handleToggleUpvote}
             />
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'raise' && (
+          <div className="animate-fade-in">
+            {/* Dedicated Raise an Issue Page */}
+            <RaiseIssueForm
+              key={selectedDraft?.id || 'new-raise-form'}
+              initialDraft={selectedDraft}
+              onCancel={() => {
+                setSelectedDraft(null)
+                setActiveTab('dashboard')
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              onSubmitSuccess={(newIssue) => {
+                setIssues((prev) => [newIssue, ...prev])
+              }}
+              onTrackIssue={handleSelectIssue}
+            />
+          </div>
+        )}
+
+        {activeTab === 'track' && (
           <div className="animate-fade-in">
             {/* Complaint Tracking & Detail Hub */}
             <TrackingHub
@@ -84,6 +129,13 @@ function CitizenPortal({ onLogout }) {
           </div>
         )}
       </main>
+
+      {/* Saved Drafts Modal */}
+      <SavedDraftsModal
+        isOpen={isDraftsModalOpen}
+        onClose={() => setIsDraftsModalOpen(false)}
+        onResumeDraft={handleResumeDraft}
+      />
 
       {/* Phase 2 Floating Chatbot Placeholder FAB */}
       <ChatbotPlaceholder />
