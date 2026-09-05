@@ -1,15 +1,55 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SETU — Societal Engagement & Technology Utility</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-  </head>
-  <body class="bg-white text-[#1F2A28] font-outfit antialiased selection:bg-[#DCEFEA] selection:text-[#176B5B]">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SETU - Tata Group CSR Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --teal:#0f6857; --orange:#e2793f; --paper:#f7f4ee; --surface:#fff; --ink:#141d1a; --soft:#5c655f; --line:#d8d2c3; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 Outfit,sans-serif; }
+    h1,h2,h3 { margin:0; font-family:Syne,sans-serif; }
+    nav { border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; background:var(--paper); }
+    .nav-inner,.wrap { max-width:1120px; margin:auto; padding-left:32px; padding-right:32px; }
+    .nav-inner { min-height:68px; display:flex; justify-content:space-between; align-items:center; gap:18px; }
+    .brand { color:var(--teal); font:800 1.3rem Syne,sans-serif; }
+    nav a { color:var(--soft); text-decoration:none; margin-left:20px; }
+    header { padding:58px 0 48px; border-bottom:1px solid var(--line); }
+    .profile-grid { display:grid; grid-template-columns:220px 1fr; gap:36px; align-items:center; }
+    .logo-frame { aspect-ratio:1; border:1px solid var(--line); border-radius:12px; display:grid; place-items:center; background:var(--surface); }
+    .tata-image { width:100%; height:100%; object-fit:contain; padding:24px; }
+    .tag,.kicker { color:var(--orange); font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:.8rem; }
+    h1 { font-size:clamp(2rem,4vw,3.2rem); margin-top:12px; }
+    .profile-info p,.section-head p,.problem p { color:var(--soft); max-width:70ch; }
+    .stats { display:flex; flex-wrap:wrap; gap:30px; margin-top:22px; }
+    .stats strong { display:block; color:var(--teal); font:700 1.3rem 'Space Mono',monospace; }
+    .stats span { color:var(--soft); font-size:.78rem; }
+    section { padding:58px 0 28px; }
+    .section-head { margin-bottom:28px; }
+    .section-head h2 { font-size:1.7rem; margin-top:6px; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .card,.problem { border:1px solid var(--line); border-radius:10px; background:var(--surface); padding:24px; }
+    .card h3 { font-size:1.1rem; margin-top:10px; }
+    .card p { color:var(--soft); font-size:.9rem; }
+    .problem-list { border-top:1px solid var(--line); }
+    .problem { border-width:0 0 1px; border-radius:0; display:flex; justify-content:space-between; gap:24px; align-items:center; }
+    .problem h3 { font-size:1.05rem; }
+    .fund { flex:none; padding:11px 18px; border-radius:6px; background:var(--teal); color:#fff; text-decoration:none; }
+    footer { border-top:1px solid var(--line); padding:28px 0; margin-top:50px; color:var(--soft); text-align:center; }
+    @media (max-width:700px) { .nav-inner,.wrap { padding-left:18px; padding-right:18px; } .profile-grid,.grid { grid-template-columns:1fr; } .problem { display:block; } .fund { display:inline-block; margin-top:12px; } nav a { margin-left:10px; font-size:.85rem; } }
+  </style>
+</head>
+<body>
+  <nav><div class="nav-inner"><span class="brand">SETU</span><div><a href="#solved">Solved</a><a href="#problems">Open Challenges</a></div></div></nav>
+  <header><div class="wrap"><div class="profile-grid"><div class="logo-frame"><img class="tata-image" src="/tata.image.png" alt="Tata Group"></div><div class="profile-info"><span class="tag">Industry / CSR Partner</span><h1>Tata Group</h1><p>Tata Group supports initiatives focused on education, livelihoods, health, inclusion and community development, working with communities and partner organisations to create meaningful social impact.</p><div class="stats"><div><strong>145+</strong><span>YEARS OF CSR HISTORY</span></div><div><strong>10+</strong><span>ACTIVE PROGRAMME AREAS</span></div><div><strong>3</strong><span>SETU CHALLENGES FUNDED</span></div></div></div></div></div></header>
+  <main>
+    <section id="solved"><div class="wrap"><div class="section-head"><span class="kicker">Track Record</span><h2>What Tata Group has already solved</h2><p>Programmes supported through long-term community partnerships.</p></div><div class="grid"><article class="card"><span class="kicker">Education</span><h3>Education Signature Programme</h3><p>Learning gaps, children out of school and unequal access to quality education.</p></article><article class="card"><span class="kicker">Health</span><h3>MANSI+ Maternal &amp; Child Health</h3><p>Support for high-risk pregnancies, maternal health and child nutrition.</p></article><article class="card"><span class="kicker">Inclusion</span><h3>SABAL - Disability Inclusion</h3><p>Livelihood support and stronger inclusion for persons with disabilities.</p></article></div></div></section>
+    <section id="problems"><div class="wrap"><div class="section-head"><span class="kicker">Open For Funding</span><h2>Challenges matched to Tata's focus areas</h2><p>Choose a validated community problem and contribute towards solving it.</p></div><div class="problem-list"><article class="problem"><div><span class="kicker">Education</span><h3>Learning gaps and unequal access to quality education</h3><p>Children need stronger learning support and pathways back into the education system.</p></div><a class="fund" href="payment.html?title=Learning%20gaps%20and%20unequal%20access%20to%20quality%20education&amp;id=EDU-001&amp;required=500000&amp;raised=320000">Fund this -&gt;</a></article><article class="problem"><div><span class="kicker">Employment</span><h3>Limited job skills and livelihood opportunities</h3><p>Young people need vocational training, career support and sustainable livelihoods.</p></div><a class="fund" href="payment.html?title=Limited%20job%20skills%20and%20livelihood%20opportunities&amp;id=EMP-002&amp;required=500000&amp;raised=155000">Fund this -&gt;</a></article><article class="problem"><div><span class="kicker">Disability Inclusion</span><h3>Barriers to livelihoods and employment for persons with disabilities</h3><p>Communities need stronger livelihood linkages and inclusive employment support.</p></div><a class="fund" href="payment.html?title=Barriers%20to%20livelihoods%20and%20employment&amp;id=INC-003&amp;required=500000&amp;raised=90000">Fund this -&gt;</a></article></div></div></section>
+  </main>
+  <footer>SETU - Connecting CSR contributions with real community problems.</footer>
+</body>
 </html>
+  
