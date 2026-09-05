@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "brand": "SETU",
+    "portalBadge": "नागरिक पोर्टल",
+    "home": "होम",
+    "checkStatus": "स्थिति जांचें",
+    "notifications": "सूचनाएं",
+    "profile": "प्रोफ़ाइल",
+    "language": "भाषा",
+    "logout": "लॉग आउट",
+    "switchRole": "पोर्टल बदलें"
+  },
+  "dashboard": {
+    "welcomeTitle": "वापसी पर स्वागत है, {{name}}",
+    "welcomeSubtitle": "अपनी दर्ज समस्याओं को ट्रैक करें और सामाजिक समाधान में भाग लें।",
+    "wardLocation": "11वीं स्ट्रीट, गांधी नगर, तिरुपुर",
+    "overview": "आपका अवलोकन",
+    "metrics": {
+      "totalReported": "कुल समस्याएं",
+      "underReview": "समीक्षाधीन",
+      "inProgress": "प्रगति में",
+      "resolved": "समाधान हुआ",
+      "communityUpvotes": "सामुदायिक समर्थन"
+    },
+    "raiseIssue": {
+      "title": "क्या आपके पास कोई सामाजिक समस्या है?",
+      "description": "स्थानीय साक्ष्यों के साथ समस्या दर्ज करें और संबंधित अधिकारियों से समाधान प्राप्त करें।",
+      "button": "समस्या दर्ज करें",
+      "phase2Badge": "चरण 2 पूर्वावलोकन",
+      "modalTitle": "शिकायत दर्ज पोर्टल (चरण 2)",
+      "modalDescription": "जियो-टैगिंग और साक्ष्य अपलोड के साथ पूर्ण शिकायत फॉर्म चरण 2 में उपलब्ध होगा।",
+      "closeModal": "समझ गया"
+    },
+    "recentIssues": "हाल की समस्याएं",
+    "filterAll": "सभी समस्याएं",
+    "filterActive": "प्रगति पर",
+    "filterResolved": "हल हो चुकी",
+    "searchPlaceholder": "शीर्षक, आईडी या स्थान से खोजें...",
+    "noIssuesTitle": "कोई समस्या नहीं मिली",
+    "noIssuesDesc": "वर्तमान फ़िल्टर से मेल खाती कोई समस्या उपलब्ध नहीं है।",
+    "viewDetails": "विवरण देखें व ट्रैक करें",
+    "upvote": "समर्थन करें",
+    "upvoted": "समर्थन दिया"
+  },
+  "status": {
+    "submitted": "दर्ज किया गया",
+    "underReview": "समीक्षाधीन",
+    "assigned": "आवंटित",
+    "actionTaken": "कार्रवाई की गई",
+    "resolved": "हल हो गया"
+  },
+  "tracking": {
+    "trackYourIssue": "अपनी समस्या ट्रैक करें",
+    "trackYourIssueDesc": "नवीनतम प्रगति और विवरण देखने के लिए अपनी समस्या संदर्भ आईडी दर्ज करें।",
+    "quickTrackTitle": "समस्या ट्रैकर",
+    "quickTrackPlaceholder": "समस्या आईडी दर्ज करें (उदा. SETU-CIT-1042)...",
+    "trackButton": "ट्रैक करें",
+    "backLink": "डैशबोर्ड",
+    "backToDashboard": "डैशबोर्ड",
+    "issueDetails": "दर्ज विवरण",
+    "location": "स्थान और वार्ड",
+    "evidence": "संलग्न साक्ष्य",
+    "timeline": "प्रगति समयरेखा",
+    "communitySupport": "सामुदायिक समर्थन",
+    "supportThisIssue": "इस समस्या का समर्थन करें",
+    "alreadySupported": "आपके द्वारा समर्थित",
+    "resolutionStatus": "समाधान स्थिति",
+    "resolutionConfirmed": "अधिकारियों द्वारा सत्यापित और हल",
+    "appealButton": "पुनर्विचार अपील / पुनः खोलें",
+    "confirmResolution": "समाधान की पुष्टि करें",
+    "appealNotice": "आपकी अपील पर्यवेक्षक समीक्षा के लिए दर्ज कर ली गई है।",
+    "notFound": "समस्या नहीं मिली। कृपया आईडी की जांच करें।"
+  },
+  "chatbot": {
+    "title": "SETU नागरिक सहायक",
+    "tooltip": "AI सहायक (चरण 2)",
+    "modalTitle": "SETU नागरिक सहायक",
+    "modalDescription": "क्षेत्रीय भाषाओं में स्वचालित AI सहायता और त्वरित शिकायत स्थिति पूछने की सुविधा चरण 2 में शुरू होगी।"
+  }
+}
