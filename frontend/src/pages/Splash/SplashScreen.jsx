@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 function SplashCoreLoader() {
   return (
@@ -44,19 +44,25 @@ function SplashCoreLoader() {
 }
 
 function SplashScreen({ onFinish }) {
+  const onFinishRef = useRef(onFinish)
+
+  useEffect(() => {
+    onFinishRef.current = onFinish
+  }, [onFinish])
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      onFinish()
+      onFinishRef.current?.()
     }, 2800)
 
-    const handleKeyDown = () => onFinish()
+    const handleKeyDown = () => onFinishRef.current?.()
     window.addEventListener('keydown', handleKeyDown)
 
     return () => {
       clearTimeout(timer)
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [onFinish])
+  }, [])
 
   return (
     <div
