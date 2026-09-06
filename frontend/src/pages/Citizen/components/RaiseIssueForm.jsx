@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { CITIZEN_USER_PROFILE } from '../citizenMockData.js'
+import { CITIZEN_USER_PROFILE, CATEGORIES } from '../citizenMockData.js'
 import { saveDraftToStorage, removeDraftFromStorage } from '../citizenDraftsService.js'
 import { useAppTranslation } from '../../../hooks/useAppTranslation.js'
 
@@ -9,17 +9,6 @@ const getYesterdayStr = () => {
   d.setDate(d.getDate() - 1)
   return d.toISOString().split('T')[0]
 }
-
-const CATEGORIES = [
-  'Water Supply',
-  'Roads',
-  'Electricity',
-  'Waste Management',
-  'Sanitation',
-  'Public Infrastructure',
-  'Environment',
-  'Other',
-]
 
 const DEPARTMENTS = [
   'Municipal Authority',
@@ -62,8 +51,8 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
   const [isListening, setIsListening] = useState(false)
   const [voiceNotice, setVoiceNotice] = useState(null)
   const recognitionRef = useRef(null)
-  const baseDescriptionRef = useRef('')
-  const isStartingVoiceRef = useRef(false)
+  const isVoiceSessionActiveRef = useRef(false)
+  const restartTimeoutRef = useRef(null)
 
   // Location
   const [locationState, setLocationState] = useState(initialDraft?.locationState || 'initial')
@@ -109,12 +98,22 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
   // Clean up speech recognition and camera stream on unmount
   useEffect(() => {
     return () => {
+      isVoiceSessionActiveRef.current = false
+      if (restartTimeoutRef.current) {
+        clearTimeout(restartTimeoutRef.current)
+        restartTimeoutRef.current = null
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop())
         streamRef.current = null
       }
       if (recognitionRef.current) {
-        recognitionRef.current.stop()
+        try {
+          recognitionRef.current.abort()
+        } catch {
+          // ignore
+        }
+        recognitionRef.current = null
       }
     }
   }, [])
@@ -253,87 +252,43 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
     setRestoredEvidenceMeta((prev) => prev.filter((_, i) => i !== index))
   }
 
-  // Voice recognition locale mapping
-  const getSpeechLocale = (lang) => {
-    switch (lang) {
-      case 'ta':
-        return 'ta-IN'
-      case 'hi':
-        return 'hi-IN'
-      default:
-        return 'en-IN'
-    }
-  }
-
-  // Secure context detection (HTTPS, localhost, 127.0.0.1)
-  const isContextSecure = () => {
-    if (typeof window === 'undefined') return true
-    if (window.isSecureContext) return true
-    const hostname = window.location.hostname
-    return hostname === 'localhost' || hostname === '127.0.0.1' || window.location.protocol === 'https:'
-  }
-
+  // Stop active speech recognition and permanently end the voice session
   const handleStopVoice = () => {
+    isVoiceSessionActiveRef.current = false
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current)
+      restartTimeoutRef.current = null
+    }
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.stop()
+        recognitionRef.current.abort()
       } catch (err) {
-        console.warn('Speech recognition stop warning:', err)
+        console.warn('Speech recognition abort warning:', err)
       }
+      recognitionRef.current = null
     }
     setIsListening(false)
-    isStartingVoiceRef.current = false
   }
 
-  // Voice recognition toggle (Tap-to-start / Tap-again-to-stop)
-  const handleToggleVoice = async () => {
-    if (isListening) {
-      handleStopVoice()
-      return
-    }
+  // Starts or restarts a single Web Speech recognition instance
+  const startRecognitionInstance = () => {
+    // If the user manually ended the session, never start a new instance
+    if (!isVoiceSessionActiveRef.current) return
 
-    if (isStartingVoiceRef.current) return
-    isStartingVoiceRef.current = true
+    const SpeechRecognition =
+      typeof window !== 'undefined'
+        ? window.SpeechRecognition || window.webkitSpeechRecognition
+        : null
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
-      isStartingVoiceRef.current = false
+      isVoiceSessionActiveRef.current = false
+      setIsListening(false)
       setVoiceNotice('Voice input is not supported in this browser. You can continue typing directly.')
       return
     }
 
-    if (!isContextSecure()) {
-      isStartingVoiceRef.current = false
-      setVoiceNotice('Voice input requires a secure connection (HTTPS or localhost). You can continue typing directly.')
-      return
-    }
-
-    setVoiceNotice(null)
-    baseDescriptionRef.current = description ? description.trim() : ''
-
-    // Step 1: Ensure microphone permission is requested and verified first
-    if (navigator?.mediaDevices?.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        // Immediately release tracks so microphone is free for SpeechRecognition
-        stream.getTracks().forEach((track) => track.stop())
-      } catch (permErr) {
-        isStartingVoiceRef.current = false
-        setIsListening(false)
-        if (permErr.name === 'NotAllowedError' || permErr.name === 'PermissionDeniedError') {
-          setVoiceNotice('Microphone access was denied. Please allow microphone permissions in your browser to use voice input.')
-          return
-        }
-        if (permErr.name === 'NotFoundError' || permErr.name === 'DevicesNotFoundError') {
-          setVoiceNotice('No microphone was detected. Please ensure your microphone is connected and enabled.')
-          return
-        }
-        // If other non-critical error occurs, continue to SpeechRecognition
-      }
-    }
-
-    // Step 2: Initialize and start Web Speech API instance
     try {
+      // Abort any old instance first to ensure only one runs at a time
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort()
@@ -345,90 +300,103 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
 
       const recognition = new SpeechRecognition()
       recognitionRef.current = recognition
-      recognition.continuous = true
-      recognition.interimResults = true
-      recognition.lang = getSpeechLocale(currentLanguage)
+
+      recognition.continuous = false
+      recognition.interimResults = false
+      recognition.lang = 'en-US'
 
       recognition.onstart = () => {
-        setIsListening(true)
-        isStartingVoiceRef.current = false
-        setVoiceNotice(null)
+        if (isVoiceSessionActiveRef.current) {
+          setIsListening(true)
+        }
       }
 
       recognition.onresult = (event) => {
         markDirty()
-        let sessionFinal = ''
-        let sessionInterim = ''
-
-        for (let i = 0; i < event.results.length; i++) {
-          const res = event.results[i]
-          if (res.isFinal) {
-            sessionFinal += res[0].transcript + ' '
-          } else {
-            sessionInterim += res[0].transcript
+        if (event.results && event.results[0] && event.results[0][0]) {
+          const transcript = event.results[0][0].transcript.trim()
+          if (transcript) {
+            setDescription((prev) => {
+              const base = prev ? prev.trim() : ''
+              return base ? `${base} ${transcript}` : transcript
+            })
+            if (errors.description) {
+              setErrors((prev) => ({ ...prev, description: null }))
+            }
           }
-        }
-
-        const voiceText = (sessionFinal + sessionInterim).trim()
-        const base = baseDescriptionRef.current
-        const updated = base
-          ? voiceText
-            ? `${base} ${voiceText}`
-            : base
-          : voiceText
-
-        setDescription(updated)
-        if (errors.description) {
-          setErrors((prev) => ({ ...prev, description: null }))
         }
       }
 
-      recognition.onerror = (e) => {
-        console.warn('SpeechRecognition error event:', e.error)
-        isStartingVoiceRef.current = false
-        setIsListening(false)
+      recognition.onerror = (event) => {
+        const errorCode = event.error
 
-        switch (e.error) {
-          case 'not-allowed':
-          case 'permission-denied':
-            setVoiceNotice('Microphone access was denied. Please allow microphone permissions in your browser to use voice input.')
-            break
-          case 'service-not-allowed':
-            setVoiceNotice('The speech recognition service is currently unavailable. Please try again or continue typing.')
-            break
-          case 'no-speech':
-            setVoiceNotice('No speech detected. Please try again.')
-            break
-          case 'audio-capture':
-            setVoiceNotice('No microphone was detected. Please ensure your microphone is connected and enabled.')
-            break
-          case 'network':
-            setVoiceNotice('Speech recognition network error. Please check your internet connection or continue typing.')
-            break
-          case 'language-not-supported':
-            setVoiceNotice('The selected language is not supported for voice recognition on this device.')
-            break
-          case 'aborted':
-            // User manually stopped or switched away, do not show error
-            break
-          default:
-            setVoiceNotice('Voice recognition was interrupted. You can try again or continue typing directly.')
-            break
+        // Ignore harmless pauses/aborts while user session is active
+        if (errorCode === 'no-speech' || errorCode === 'aborted') {
+          return
+        }
+
+        // Fatal/permission errors: terminate user session
+        isVoiceSessionActiveRef.current = false
+        setIsListening(false)
+        recognitionRef.current = null
+
+        if (errorCode === 'not-allowed' || errorCode === 'service-not-allowed') {
+          setVoiceNotice('Microphone permission denied. Please enable microphone access to use voice input.')
+          return
+        }
+
+        if (errorCode === 'audio-capture') {
+          setVoiceNotice('No microphone was detected on this device.')
+          return
+        }
+
+        if (errorCode === 'network') {
+          setVoiceNotice('Voice input connection issue. Please continue typing directly.')
+          return
         }
       }
 
       recognition.onend = () => {
-        setIsListening(false)
-        isStartingVoiceRef.current = false
+        recognitionRef.current = null
+
+        // If user intent is still active, automatically restart recognition seamlessly
+        if (isVoiceSessionActiveRef.current) {
+          if (restartTimeoutRef.current) {
+            clearTimeout(restartTimeoutRef.current)
+          }
+          restartTimeoutRef.current = setTimeout(() => {
+            if (isVoiceSessionActiveRef.current) {
+              startRecognitionInstance()
+            }
+          }, 150)
+        } else {
+          setIsListening(false)
+        }
       }
 
       recognition.start()
     } catch (err) {
-      console.warn('SpeechRecognition start exception:', err)
-      isStartingVoiceRef.current = false
+      console.warn('SpeechRecognition start error:', err)
+      isVoiceSessionActiveRef.current = false
       setIsListening(false)
+      recognitionRef.current = null
       setVoiceNotice('Unable to start voice input. Please type your description directly.')
     }
+  }
+
+  // Voice recognition toggle (Tap-to-start / Tap-again-to-stop)
+  const handleToggleVoice = () => {
+    // If voice session is already active, user wants to manually STOP
+    if (isVoiceSessionActiveRef.current || isListening) {
+      handleStopVoice()
+      return
+    }
+
+    // User wants to START voice session
+    setVoiceNotice(null)
+    isVoiceSessionActiveRef.current = true
+    setIsListening(true)
+    startRecognitionInstance()
   }
 
   // Location detection

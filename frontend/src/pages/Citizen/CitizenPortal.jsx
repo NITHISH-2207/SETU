@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import CitizenNavbar from './components/CitizenNavbar.jsx'
 import WelcomeBanner from './components/WelcomeBanner.jsx'
 import OverviewMetrics from './components/OverviewMetrics.jsx'
@@ -9,12 +9,14 @@ import TrackingHub from './components/TrackingHub.jsx'
 import SavedDraftsModal from './components/SavedDraftsModal.jsx'
 import SubmissionSuccessModal from './components/SubmissionSuccessModal.jsx'
 import MyComplaintsPage from './components/MyComplaintsPage.jsx'
+import CommonIssuesPage from './components/CommonIssuesPage.jsx'
 import CitizenProfilePage from './components/CitizenProfilePage.jsx'
 import { getSavedDrafts } from './citizenDraftsService.js'
 import ChatbotPlaceholder from './components/ChatbotPlaceholder.jsx'
 import { CITIZEN_USER_PROFILE } from './citizenMockData.js'
 import {
   getStoredComplaints,
+  getCommunityStoredComplaints,
   addStoredComplaint,
   deleteStoredComplaint,
   toggleStoredComplaintUpvote,
@@ -47,6 +49,14 @@ function CitizenPortal({ currentUser, onLogout, onNavigate: _onNavigate }) {
 
   // Derive live drafts count during render
   const draftsCount = getSavedDrafts().length
+
+  // Combined complaints for TrackingHub so both personal and community complaints can be tracked
+  const allTrackingIssues = useMemo(() => {
+    const community = getCommunityStoredComplaints()
+    const personalIds = new Set(issues.map((i) => i.id))
+    const uniqueCommunity = community.filter((i) => !personalIds.has(i.id))
+    return [...issues, ...uniqueCommunity]
+  }, [issues])
 
   const showToast = (message) => {
     setToastMessage(message)
@@ -178,7 +188,14 @@ function CitizenPortal({ currentUser, onLogout, onNavigate: _onNavigate }) {
           </div>
         )}
 
-        {/* TAB 2: MY COMPLAINTS */}
+        {/* TAB 2: COMMON ISSUES & COMMUNITY COMPLAINTS */}
+        {activeTab === 'common_issues' && (
+          <div className="animate-fade-in">
+            <CommonIssuesPage />
+          </div>
+        )}
+
+        {/* TAB 3: MY COMPLAINTS */}
         {activeTab === 'my_complaints' && (
           <div className="animate-fade-in">
             <MyComplaintsPage
@@ -193,7 +210,7 @@ function CitizenPortal({ currentUser, onLogout, onNavigate: _onNavigate }) {
           </div>
         )}
 
-        {/* TAB 3: RAISE AN ISSUE */}
+        {/* TAB 4: RAISE AN ISSUE */}
         {activeTab === 'raise' && (
           <div className="animate-fade-in">
             <RaiseIssueForm
@@ -210,11 +227,11 @@ function CitizenPortal({ currentUser, onLogout, onNavigate: _onNavigate }) {
           </div>
         )}
 
-        {/* TAB 4: CHECK STATUS & COMPLAINT TRACKING HUB */}
+        {/* TAB 5: CHECK STATUS & COMPLAINT TRACKING HUB */}
         {activeTab === 'track' && (
           <div className="animate-fade-in">
             <TrackingHub
-              issues={issues}
+              issues={allTrackingIssues}
               selectedIssueId={selectedIssueId}
               onBack={() => {
                 handleTabChange('dashboard')

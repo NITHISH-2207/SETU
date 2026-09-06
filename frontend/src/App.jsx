@@ -18,6 +18,8 @@ import StudentDashboard from './pages/University/dashboard/StudentDashboard.jsx'
 import IndustryLogin from './pages/Industry/IndustryLogin.jsx'
 import IndustrySignup from './pages/Industry/IndustrySignup.jsx'
 import IndustryDashboard from './pages/Industry/IndustryDashboard.jsx'
+import GovernmentLogin from './pages/Government/GovernmentLogin.jsx'
+import GovernmentPortal from './pages/Government/GovernmentPortal.jsx'
 import { STAKEHOLDER_ROLES } from './pages/Auth/rolesData.jsx'
 import {
   getAuthToken,
@@ -33,6 +35,14 @@ function App() {
   const [selectedInstitution, setSelectedInstitution] = useState(null)
   const [authenticatedUniversityUser, setAuthenticatedUniversityUser] = useState(null)
   const [authenticatedIndustryUser, setAuthenticatedIndustryUser] = useState(null)
+  const [authenticatedGovernmentUser, setAuthenticatedGovernmentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('setu_government_profile')
+      return saved ? JSON.parse(saved) : null
+    } catch {
+      return null
+    }
+  })
   const [authenticatedCitizenUser, setAuthenticatedCitizenUser] = useState(() => getStoredCitizenUser())
 
   const handleNavigate = (target, options = {}) => {
@@ -89,6 +99,8 @@ function App() {
       setCurrentScreen('university-institution-selection')
     } else if (role.id === 'industry') {
       setCurrentScreen(authMode === 'signup' ? 'industry-signup' : 'industry-login')
+    } else if (role.id === 'government') {
+      setCurrentScreen('government-login')
     } else {
       setCurrentScreen(authMode === 'signup' ? 'auth-signup' : 'auth-login')
     }
@@ -99,6 +111,8 @@ function App() {
     setAuthMode(newMode)
     if (selectedRole?.id === 'industry') {
       setCurrentScreen(newMode === 'login' ? 'industry-login' : 'industry-signup')
+    } else if (selectedRole?.id === 'government') {
+      setCurrentScreen('government-login')
     } else {
       setCurrentScreen(newMode === 'login' ? 'auth-login' : 'auth-signup')
     }
@@ -247,6 +261,35 @@ function App() {
         <CitizenPortal
           currentUser={authenticatedCitizenUser}
           onLogout={handleCitizenLogout}
+          onNavigate={handleNavigate}
+        />
+      )}
+
+      {/* Government Portal & Auth Screens */}
+      {currentScreen === 'government-login' && (
+        <GovernmentLogin
+          onBackToRoles={() => handleNavigate('role-selection')}
+          onLoginSuccess={(profile) => {
+            setAuthenticatedGovernmentUser(profile)
+            setCurrentScreen('government-portal')
+            window.scrollTo({ top: 0, behavior: 'instant' })
+          }}
+        />
+      )}
+
+      {currentScreen === 'government-portal' && (
+        <GovernmentPortal
+          userProfile={authenticatedGovernmentUser}
+          initialDepartment={authenticatedGovernmentUser?.departmentName}
+          onLogout={() => {
+            setAuthenticatedGovernmentUser(null)
+            try {
+              localStorage.removeItem('setu_government_profile')
+            } catch (err) {
+              console.warn('Error clearing government session:', err)
+            }
+            handleNavigate('landing')
+          }}
           onNavigate={handleNavigate}
         />
       )}
