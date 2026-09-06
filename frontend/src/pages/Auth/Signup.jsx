@@ -2,8 +2,14 @@ import { useState } from 'react'
 import RoleStoryPanel from './RoleStoryPanel.jsx'
 import OtpInput from './OtpInput.jsx'
 import { STAKEHOLDER_ROLES } from './rolesData.jsx'
+import {
+  signupCitizen,
+  requestCitizenOtp,
+  verifyCitizenOtp,
+  getCitizenProfile,
+} from '../../services/authService.js'
 
-function Signup({ selectedRole, onBackToRoles, onNavigate }) {
+function Signup({ selectedRole, onBackToRoles, onNavigate, onLoginSuccess }) {
   const activeRole = selectedRole || STAKEHOLDER_ROLES[0]
   const roleName = activeRole.shortName
   const isCitizen = activeRole.id === 'citizen'
@@ -31,10 +37,16 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
   const [isEmailVerified, setIsEmailVerified] = useState(false)
   const [emailResendNotice, setEmailResendNotice] = useState(false)
 
+  // API Interaction States
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
+  const [errorMessage, setErrorMessage] = useState(null)
+  const [devOtpInfo, setDevOtpInfo] = useState(null)
+
   // Validation rules
   const cleanMobile = citizenMobile.trim().replace(/\D/g, '')
   const isMobileValid = /^\d{10}$/.test(cleanMobile)
-  const isNameFilled = citizenName.trim().length > 0
+  const isNameFilled = citizenName.trim().length >= 2
 
   // Mobile Get OTP button is visible only when Full Name is filled AND Mobile has 10 digits
   const canShowMobileGetOtp = isNameFilled && isMobileValid && !mobileOtpSent && !isMobileVerified
@@ -44,23 +56,92 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)
   const canShowEmailGetOtp = isEmailValid && !emailOtpSent && !isEmailVerified
 
-  const handleSendMobileOtp = () => {
-    if (canShowMobileGetOtp) {
+  const handleSendMobileOtp = async () => {
+    if (!isNameFilled) {
+      setErrorMessage('Please enter your full name (at least 2 characters).')
+      return
+    }
+    if (!isMobileValid) {
+      setErrorMessage('Please enter a valid 10-digit mobile number.')
+      return
+    }
+    if (cleanEmail && !isEmailValid) {
+      setErrorMessage('Please enter a valid email address or leave it blank.')
+      return
+    }
+
+    setErrorMessage(null)
+    setIsRequestingOtp(true)
+    setDevOtpInfo(null)
+
+    try {
+      const res = await signupCitizen({
+        full_name: citizenName,
+        mobile_number: cleanMobile,
+        email: cleanEmail || null,
+      })
+
       setMobileOtpSent(true)
       setMobileResendNotice(false)
+      if (res?.development_otp) {
+        setDevOtpInfo(res.development_otp)
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to send OTP. Please try again.')
+    } finally {
+      setIsRequestingOtp(false)
     }
   }
 
-  const handleVerifyMobileOtp = () => {
-    if (mobileOtpValue.every((d) => d !== '')) {
+  const handleVerifyMobileOtp = async () => {
+    const otpCode = mobileOtpValue.join('')
+    if (otpCode.length !== 6) {
+      setErrorMessage('Please enter the complete 6-digit OTP code.')
+      return
+    }
+
+    setErrorMessage(null)
+    setIsVerifyingOtp(true)
+
+    try {
+      await verifyCitizenOtp({
+        identifier: cleanMobile,
+        mobile_number: cleanMobile,
+        otp: otpCode,
+      })
+
       setIsMobileVerified(true)
       setMobileOtpSent(false)
+
+      // Fetch fresh profile with real authenticated citizen data
+      const profile = await getCitizenProfile()
+
+      if (onLoginSuccess) {
+        onLoginSuccess(profile)
+      } else {
+        onNavigate('citizen-portal')
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Invalid or expired OTP. Please try again.')
+    } finally {
+      setIsVerifyingOtp(false)
     }
   }
 
-  const handleResendMobileOtp = () => {
-    setMobileResendNotice(true)
-    setTimeout(() => setMobileResendNotice(false), 3000)
+  const handleResendMobileOtp = async () => {
+    setErrorMessage(null)
+    setMobileResendNotice(false)
+
+    try {
+      const res = await requestCitizenOtp({ identifier: cleanMobile, mobile_number: cleanMobile })
+      setMobileResendNotice(true)
+      if (res?.development_otp) {
+        setDevOtpInfo(res.development_otp)
+      }
+      setTimeout(() => setMobileResendNotice(false), 4000)
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to resend OTP. Please try again.')
+    }
   }
 
   const handleSendEmailOtp = () => {
@@ -85,7 +166,15 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (isCitizen) {
-      onNavigate('citizen-portal')
+      if (!isMobileVerified) {
+        if (mobileOtpSent) {
+          handleVerifyMobileOtp()
+        } else if (canShowMobileGetOtp) {
+          handleSendMobileOtp()
+        }
+      } else {
+        onNavigate('citizen-portal')
+      }
     }
   }
 
@@ -145,6 +234,18 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
                 </p>
               </div>
 
+              {/* Inline Error Message */}
+              {errorMessage && (
+                <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm font-outfit flex items-start gap-2.5 animate-fade-in">
+                  <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
               {/* Citizen Registration Form */}
               {isCitizen ? (
                 <form onSubmit={handleSubmit} className="space-y-4 font-outfit">
@@ -160,10 +261,14 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
                       id="citizenFullName"
                       type="text"
                       required
+                      disabled={isRequestingOtp || isVerifyingOtp || mobileOtpSent}
                       value={citizenName}
-                      onChange={(e) => setCitizenName(e.target.value)}
+                      onChange={(e) => {
+                        setCitizenName(e.target.value)
+                        if (errorMessage) setErrorMessage(null)
+                      }}
                       placeholder="Your full name"
-                      className="w-full px-4 py-2.5 sm:py-3 text-sm bg-white border border-[#BFD9D2] rounded-lg text-[#1F2A28] placeholder-[#5C726E]/60 focus:outline-hidden focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20 transition-all duration-150"
+                      className="w-full px-4 py-2.5 sm:py-3 text-sm bg-white border border-[#BFD9D2] rounded-lg text-[#1F2A28] placeholder-[#5C726E]/60 focus:outline-hidden focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20 transition-all duration-150 disabled:bg-[#F7FAF9] disabled:text-[#5C726E]"
                     />
                   </div>
 
@@ -186,14 +291,15 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
                       <input
                         id="citizenEmail"
                         type="email"
-                        disabled={isEmailVerified}
+                        disabled={isEmailVerified || isRequestingOtp || isVerifyingOtp || mobileOtpSent}
                         value={citizenEmail}
                         onChange={(e) => {
                           setCitizenEmail(e.target.value)
                           if (emailOtpSent) setEmailOtpSent(false)
+                          if (errorMessage) setErrorMessage(null)
                         }}
                         placeholder="name@example.com"
-                        className={`w-full px-4 py-2.5 sm:py-3 text-sm bg-white border border-[#BFD9D2] rounded-lg text-[#1F2A28] placeholder-[#5C726E]/60 focus:outline-hidden focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20 transition-all duration-150 ${
+                        className={`w-full px-4 py-2.5 sm:py-3 text-sm bg-white border border-[#BFD9D2] rounded-lg text-[#1F2A28] placeholder-[#5C726E]/60 focus:outline-hidden focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20 transition-all duration-150 disabled:bg-[#F7FAF9] disabled:text-[#5C726E] ${
                           canShowEmailGetOtp ? 'pr-24' : ''
                         }`}
                       />
@@ -274,16 +380,17 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
                         id="citizenMobile"
                         type="tel"
                         required
-                        disabled={isMobileVerified}
+                        disabled={isMobileVerified || isRequestingOtp || isVerifyingOtp || mobileOtpSent}
                         maxLength={10}
                         value={citizenMobile}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, '').slice(0, 10)
                           setCitizenMobile(val)
                           if (mobileOtpSent) setMobileOtpSent(false)
+                          if (errorMessage) setErrorMessage(null)
                         }}
                         placeholder="10-digit mobile number"
-                        className="flex-1 px-4 py-2.5 sm:py-3 text-sm bg-transparent text-[#1F2A28] placeholder-[#5C726E]/60 focus:outline-hidden"
+                        className="flex-1 px-4 py-2.5 sm:py-3 text-sm bg-transparent text-[#1F2A28] placeholder-[#5C726E]/60 focus:outline-hidden disabled:bg-[#F7FAF9] disabled:text-[#5C726E]"
                       />
                     </div>
                   </div>
@@ -294,9 +401,22 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
                       <button
                         type="button"
                         onClick={handleSendMobileOtp}
-                        className="w-full inline-flex items-center justify-center text-sm font-medium text-white bg-linear-to-b from-[#176B5B] to-[#125649] hover:from-[#156152] hover:to-[#0F473C] px-5 py-2.5 sm:py-3 rounded-xl shadow-xs transition-all duration-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#176B5B] focus-visible:ring-offset-2 cursor-pointer active:scale-[0.99]"
+                        disabled={isRequestingOtp}
+                        className="w-full inline-flex items-center justify-center text-sm font-medium text-white bg-linear-to-b from-[#176B5B] to-[#125649] hover:from-[#156152] hover:to-[#0F473C] px-5 py-2.5 sm:py-3 rounded-xl shadow-xs transition-all duration-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#176B5B] focus-visible:ring-offset-2 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        Get OTP for Mobile <span className="ml-2">→</span>
+                        {isRequestingOtp ? (
+                          <span className="inline-flex items-center gap-2">
+                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            Sending OTP...
+                          </span>
+                        ) : (
+                          <>
+                            Get OTP for Mobile <span className="ml-2">→</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   )}
@@ -312,6 +432,22 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
                           OTP Sent to +91 {citizenMobile}
                         </span>
                       </div>
+
+                      {devOtpInfo && (
+                        <div className="p-2.5 rounded-lg bg-[#DCEFEA]/60 border border-[#176B5B]/20 text-xs text-[#176B5B] flex items-center justify-between">
+                          <span>Verification Code: <strong className="font-mono text-sm tracking-widest">{devOtpInfo}</strong></span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const digits = devOtpInfo.split('')
+                              setMobileOtpValue(digits)
+                            }}
+                            className="text-[11px] font-semibold underline underline-offset-2 hover:text-[#125649] cursor-pointer"
+                          >
+                            Auto-fill
+                          </button>
+                        </div>
+                      )}
 
                       <OtpInput
                         length={6}
@@ -331,9 +467,10 @@ function Signup({ selectedRole, onBackToRoles, onNavigate }) {
                         <button
                           type="button"
                           onClick={handleVerifyMobileOtp}
-                          className="text-xs font-medium text-white bg-[#176B5B] hover:bg-[#125649] px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                          disabled={isVerifyingOtp}
+                          className="text-xs font-medium text-white bg-[#176B5B] hover:bg-[#125649] px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                          Verify OTP
+                          {isVerifyingOtp ? 'Verifying...' : 'Verify OTP'}
                         </button>
                       </div>
 

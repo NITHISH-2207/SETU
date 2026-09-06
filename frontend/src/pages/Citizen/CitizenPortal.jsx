@@ -20,7 +20,9 @@ import {
   toggleStoredComplaintUpvote,
 } from './citizenComplaintStore.js'
 
-function CitizenPortal({ onLogout }) {
+function CitizenPortal({ currentUser, onLogout, onNavigate: _onNavigate }) {
+  const currentUserId = currentUser?.id || currentUser?.user_id || null
+
   const [activeTab, setActiveTab] = useState(() => {
     try {
       return localStorage.getItem('setu_citizen_active_tab') || 'dashboard'
@@ -28,7 +30,7 @@ function CitizenPortal({ onLogout }) {
       return 'dashboard'
     }
   })
-  const [issues, setIssues] = useState(() => getStoredComplaints())
+  const [issues, setIssues] = useState(() => getStoredComplaints(currentUserId))
   const [selectedIssueId, setSelectedIssueId] = useState(() => {
     try {
       const savedId = localStorage.getItem('setu_selected_issue_id')
@@ -36,7 +38,7 @@ function CitizenPortal({ onLogout }) {
     } catch (err) {
       console.warn('Failed to read saved issue id:', err)
     }
-    const initial = getStoredComplaints()
+    const initial = getStoredComplaints(currentUserId)
     return initial.length > 0 ? initial[0].id : null
   })
   const [selectedDraft, setSelectedDraft] = useState(null)
@@ -84,12 +86,12 @@ function CitizenPortal({ onLogout }) {
   }
 
   const handleToggleUpvote = (id) => {
-    const updated = toggleStoredComplaintUpvote(id)
+    const updated = toggleStoredComplaintUpvote(id, currentUserId)
     setIssues(updated)
   }
 
   const handleComplaintSubmitSuccess = (newComplaint) => {
-    const updated = addStoredComplaint(newComplaint)
+    const updated = addStoredComplaint(newComplaint, currentUserId)
     setIssues(updated)
     setSelectedIssueId(newComplaint.id)
     setSubmittedComplaint(newComplaint)
@@ -102,7 +104,7 @@ function CitizenPortal({ onLogout }) {
   }
 
   const handleDeleteComplaint = (id) => {
-    const updated = deleteStoredComplaint(id)
+    const updated = deleteStoredComplaint(id, currentUserId)
     setIssues(updated)
     if (selectedIssueId === id) {
       const nextId = updated.length > 0 ? updated[0].id : null
@@ -119,10 +121,13 @@ function CitizenPortal({ onLogout }) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const effectiveUserName = currentUser?.full_name || CITIZEN_USER_PROFILE.name
+
   return (
     <div className="min-h-screen bg-white text-[#1F2A28] flex flex-col justify-between selection:bg-[#DCEFEA] selection:text-[#176B5B]">
       {/* Top Sticky Citizen Navigation Bar */}
       <CitizenNavbar
+        currentUser={currentUser}
         activeTab={activeTab}
         onTabChange={(tab) => {
           handleTabChange(tab)
@@ -152,7 +157,7 @@ function CitizenPortal({ onLogout }) {
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fade-in">
             {/* 1. Welcome Banner */}
-            <WelcomeBanner userName={CITIZEN_USER_PROFILE.name} />
+            <WelcomeBanner userName={effectiveUserName} />
 
             {/* 2. Overview Metric Cards */}
             <OverviewMetrics issues={issues} />
@@ -228,6 +233,7 @@ function CitizenPortal({ onLogout }) {
         {activeTab === 'profile' && (
           <div className="animate-fade-in">
             <CitizenProfilePage
+              currentUser={currentUser}
               complaints={issues}
               onNavigateToMyComplaints={() => {
                 handleTabChange('my_complaints')

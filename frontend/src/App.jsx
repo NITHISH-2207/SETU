@@ -16,6 +16,12 @@ import AdminDashboard from './pages/University/dashboard/AdminDashboard.jsx'
 import MentorDashboard from './pages/University/dashboard/MentorDashboard.jsx'
 import StudentDashboard from './pages/University/dashboard/StudentDashboard.jsx'
 import { STAKEHOLDER_ROLES } from './pages/Auth/rolesData.jsx'
+import {
+  getAuthToken,
+  getCitizenProfile,
+  logoutCitizen,
+  getStoredCitizenUser,
+} from './services/authService.js'
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState('splash')
@@ -23,9 +29,24 @@ function App() {
   const [selectedRole, setSelectedRole] = useState(STAKEHOLDER_ROLES[0])
   const [selectedInstitution, setSelectedInstitution] = useState(null)
   const [authenticatedUniversityUser, setAuthenticatedUniversityUser] = useState(null)
+  const [authenticatedCitizenUser, setAuthenticatedCitizenUser] = useState(() => getStoredCitizenUser())
 
   const handleNavigate = (target, options = {}) => {
     let nextScreen = target
+
+    // Screen-state protection for protected citizen portal
+    if (nextScreen === 'citizen-portal') {
+      const token = getAuthToken()
+      if (!token && !authenticatedCitizenUser) {
+        // Redirect unauthenticated user to Citizen Login
+        setSelectedRole(STAKEHOLDER_ROLES[0])
+        setAuthMode('login')
+        setCurrentScreen('auth-login')
+        window.scrollTo({ top: 0, behavior: 'instant' })
+        return
+      }
+    }
+
     if (target === 'login') {
       setAuthMode('login')
       nextScreen = 'role-selection'
@@ -53,14 +74,8 @@ function App() {
   }
 
   const handleCitizenLogout = () => {
-    try {
-      localStorage.removeItem('setu_is_logged_in')
-      localStorage.removeItem('setu_active_screen')
-      localStorage.removeItem('setu_citizen_active_tab')
-      localStorage.removeItem('setu_selected_issue_id')
-    } catch (err) {
-      console.warn('Failed to clear session on logout:', err)
-    }
+    logoutCitizen()
+    setAuthenticatedCitizenUser(null)
     handleNavigate('landing')
   }
 
@@ -80,17 +95,37 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
-  const handleSplashFinish = () => {
-    try {
-      const isLoggedIn = localStorage.getItem('setu_is_logged_in') === 'true'
-      const savedScreen = localStorage.getItem('setu_active_screen')
-      if (isLoggedIn && savedScreen) {
-        setCurrentScreen(savedScreen)
+  const handleSplashFinish = async () => {
+    const token = getAuthToken()
+    const savedScreen = localStorage.getItem('setu_active_screen')
+
+    if (token) {
+      try {
+        // Verify real token with backend
+        const profile = await getCitizenProfile(token)
+        if (profile) {
+          setAuthenticatedCitizenUser(profile)
+          if (savedScreen === 'citizen-portal') {
+            setCurrentScreen('citizen-portal')
+            return
+          }
+        }
+      } catch (err) {
+        console.warn('Token validation failed on refresh:', err)
+        logoutCitizen()
+        setAuthenticatedCitizenUser(null)
+      }
+    } else {
+      // No token present
+      if (savedScreen === 'citizen-portal') {
+        // Route protection: redirect to Citizen Login
+        setSelectedRole(STAKEHOLDER_ROLES[0])
+        setAuthMode('login')
+        setCurrentScreen('auth-login')
         return
       }
-    } catch (err) {
-      console.warn('Failed to restore session after splash:', err)
     }
+
     handleNavigate('landing')
   }
 
@@ -117,6 +152,10 @@ function App() {
         <Login
           selectedRole={selectedRole}
           onBackToRoles={() => handleNavigate('role-selection')}
+          onLoginSuccess={(profile) => {
+            setAuthenticatedCitizenUser(profile)
+            handleNavigate('citizen-portal')
+          }}
           onNavigate={(target) => {
             if (target === 'signup') {
               handleSwitchAuthMode('signup')
@@ -131,6 +170,10 @@ function App() {
         <Signup
           selectedRole={selectedRole}
           onBackToRoles={() => handleNavigate('role-selection')}
+          onLoginSuccess={(profile) => {
+            setAuthenticatedCitizenUser(profile)
+            handleNavigate('citizen-portal')
+          }}
           onNavigate={(target) => {
             if (target === 'login') {
               handleSwitchAuthMode('login')
@@ -144,6 +187,7 @@ function App() {
       {/* Citizen Portal */}
       {currentScreen === 'citizen-portal' && (
         <CitizenPortal
+          currentUser={authenticatedCitizenUser}
           onLogout={handleCitizenLogout}
           onNavigate={handleNavigate}
         />

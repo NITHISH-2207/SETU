@@ -1,13 +1,21 @@
 import React from 'react'
 import { computeComplaintStats } from '../citizenComplaintStore'
+import { CITIZEN_USER_PROFILE } from '../citizenMockData'
 
 export default function CitizenProfilePage({
+  currentUser,
   complaints = [],
   onNavigateToMyComplaints,
   onRaiseNewIssue,
   onBackToDashboard,
 }) {
   const stats = computeComplaintStats(complaints)
+
+  const name = currentUser?.full_name || CITIZEN_USER_PROFILE.name
+  const initial = name.charAt(0).toUpperCase()
+  const mobile = currentUser?.mobile_number ? `+91 ${currentUser.mobile_number}` : CITIZEN_USER_PROFILE.formattedPhone
+  const email = currentUser?.email || 'Not specified'
+  const location = CITIZEN_USER_PROFILE.ward
 
   const overviewCards = [
     {
@@ -74,7 +82,7 @@ export default function CitizenProfilePage({
               MY PROFILE
             </h1>
             <p className="text-sm text-[#1F2A28]/70">
-              Verified Citizen Account Details & Activity Overview
+              Verified Citizen Account Details &amp; Activity Overview
             </p>
           </div>
         </div>
@@ -102,12 +110,12 @@ export default function CitizenProfilePage({
         <div className="flex items-start justify-between flex-wrap gap-4 pb-6 border-b border-[#BFD9D2]/40">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-[#176B5B] text-white flex items-center justify-center font-syne text-2xl font-bold shadow-xs">
-              N
+              {initial}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-syne text-xl font-bold text-[#1F2A28]">
-                  NITHISH
+                  {name}
                 </h2>
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-[#DCEFEA] text-[#176B5B] px-2.5 py-0.5 rounded-full border border-[#BFD9D2]/60">
                   <svg className="w-3 h-3 text-[#176B5B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,7 +125,7 @@ export default function CitizenProfilePage({
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-[#1F2A28]/60 mt-0.5">
-                Ward 12, Gandhi Nagar, Tiruppur Corporation
+                {location}
               </p>
             </div>
           </div>
@@ -130,7 +138,7 @@ export default function CitizenProfilePage({
               Full Name
             </span>
             <span className="font-syne font-bold text-base text-[#1F2A28]">
-              NITHISH
+              {name}
             </span>
           </div>
 
@@ -139,16 +147,16 @@ export default function CitizenProfilePage({
               Mobile Number
             </span>
             <span className="font-outfit font-semibold text-base text-[#176B5B]">
-              +91 90932 14543
+              {mobile}
             </span>
           </div>
 
           <div className="p-4 rounded-xl bg-[#F7FAF9] border border-[#BFD9D2]/60">
             <span className="block text-xs font-bold text-[#1F2A28]/50 uppercase tracking-wider mb-1">
-              Registered Address
+              Email Address
             </span>
             <span className="font-outfit font-medium text-sm text-[#1F2A28] leading-snug">
-              11TH STREET, GANDHI NAGAR, TIRUPPUR
+              {email}
             </span>
           </div>
         </div>

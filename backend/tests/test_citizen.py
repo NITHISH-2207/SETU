@@ -101,3 +101,21 @@ def test_list_citizen_reports_and_pagination(client, create_test_citizen):
     filter_res = client.get("/api/v1/citizen/reports?category=Health", headers=headers)
     assert filter_res.status_code == 200
     assert filter_res.json()["total"] == 1
+
+
+def test_get_citizen_profile(client, create_test_citizen):
+    citizen_ctx = create_test_citizen(name="Sunita Devi", mobile="9812345678", email="sunita@example.com")
+    headers = citizen_ctx["headers"]
+
+    res = client.get("/api/v1/citizen/profile", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["full_name"] == "Sunita Devi"
+    assert data["mobile_number"] == "9812345678"
+    assert data["email"] == "sunita@example.com"
+    assert data["id"] == citizen_ctx["citizen"].id
+    assert data["user_id"] == citizen_ctx["user"].id
+
+    res_me = client.get("/api/v1/citizen/me", headers=headers)
+    assert res_me.status_code == 200
+    assert res_me.json()["full_name"] == "Sunita Devi"

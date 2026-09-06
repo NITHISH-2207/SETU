@@ -1,4 +1,12 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.db.base import Base
+from app.db.session import engine
+import app.models  # noqa: F401 - Register all models with Base
+
+# Initialize database tables
+Base.metadata.create_all(bind=engine)
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.citizen import router as citizen_router
@@ -12,6 +20,15 @@ app = FastAPI(
     title="SETU Backend",
     description="Authoritative Backend API for the SETU Platform (Citizen, Government, University, CSR/Industry)",
     version="1.0.0",
+)
+
+# Enable CORS for frontend development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

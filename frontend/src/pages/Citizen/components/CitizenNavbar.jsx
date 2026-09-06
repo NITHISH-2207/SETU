@@ -2,11 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { useAppTranslation } from '../../../hooks/useAppTranslation'
 import { CITIZEN_USER_PROFILE } from '../citizenMockData'
 
-function CitizenNavbar({ activeTab, onTabChange, onLogout, notificationsCount = 2, onOpenDrafts, draftsCount = 0 }) {
+function CitizenNavbar({ currentUser, activeTab, onTabChange, onLogout, notificationsCount = 2, onOpenDrafts, draftsCount = 0 }) {
   const { t, currentLanguage, changeLanguage, supportedLanguages } = useAppTranslation()
   const [langMenuOpen, setLangMenuOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [notifMenuOpen, setNotifMenuOpen] = useState(false)
+
+  const citizenName = currentUser?.full_name || CITIZEN_USER_PROFILE.name
+  const initial = citizenName.charAt(0).toUpperCase()
 
   const langRef = useRef(null)
   const profileRef = useRef(null)
@@ -167,10 +170,10 @@ function CitizenNavbar({ activeTab, onTabChange, onLogout, notificationsCount = 
               className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-[#BFD9D2] bg-white hover:bg-[#F7FAF9] transition-colors focus:outline-hidden cursor-pointer shadow-2xs"
             >
               <div className="w-7 h-7 rounded-full bg-[#176B5B] text-white flex items-center justify-center text-xs font-bold font-syne shadow-2xs">
-                {CITIZEN_USER_PROFILE.name.charAt(0)}
+                {initial}
               </div>
               <span className="hidden sm:inline text-xs font-semibold text-[#1F2A28]">
-                {CITIZEN_USER_PROFILE.name}
+                {citizenName}
               </span>
               <svg className="w-3 h-3 text-[#5C726E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="6 9 12 15 18 9" />
@@ -180,7 +183,10 @@ function CitizenNavbar({ activeTab, onTabChange, onLogout, notificationsCount = 
             {profileMenuOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white border border-[#BFD9D2] rounded-xl shadow-lg p-3 z-40 animate-fade-in">
                 <div className="p-2.5 border-b border-[#BFD9D2]/50">
-                  <p className="text-sm font-bold text-[#1F2A28] font-syne">{CITIZEN_USER_PROFILE.name}</p>
+                  <p className="text-sm font-bold text-[#1F2A28] font-syne">{citizenName}</p>
+                  {currentUser?.mobile_number && (
+                    <p className="text-xs text-[#5C726E] font-outfit mt-0.5">+91 {currentUser.mobile_number}</p>
+                  )}
                 </div>
                 <div className="py-1 border-b border-[#BFD9D2]/50 space-y-0.5">
                   <button
