@@ -1,0 +1,39 @@
+<svg width="1200" height="400" viewBox="0 0 1200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="setuGradient" x1="40" y1="40" x2="280" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#176B5B"/>
+      <stop offset="1" stop-color="#0E4F45"/>
+    </linearGradient>
+    <linearGradient id="setuAccent" x1="70" y1="60" x2="240" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E07A4E"/>
+      <stop offset="1" stop-color="#C9663D"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#176B5B" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="400" fill="transparent"/>
+
+  <g filter="url(#shadow)">
+    <circle cx="190" cy="200" r="124" fill="url(#setuGradient)"/>
+    <circle cx="190" cy="200" r="96" fill="#F7FAF9" fill-opacity="0.14"/>
+    <circle cx="190" cy="200" r="72" fill="#F7FAF9" fill-opacity="0.06"/>
+
+    <path d="M137 115C151 97 172 86 195 86C226 86 252 102 266 129C280 156 280 192 262 218C248 238 226 251 200 255C180 258 160 253 143 241C127 229 115 211 112 191C109 171 117 149 132 133L150 149C141 159 136 170 136 182C136 198 143 212 156 222C169 233 187 238 203 235C219 232 234 224 244 210C255 196 259 178 255 160C251 140 238 122 220 111C205 102 187 98 171 101C161 103 150 109 141 117L137 115Z" fill="#FFFFFF" fill-opacity="0.94"/>
+
+    <path d="M204 260C218 250 231 233 241 210C246 198 250 185 250 170C250 152 246 136 236 122C225 107 210 96 190 89C171 82 151 84 135 95C118 106 107 122 103 141L140 146C144 131 154 120 166 114C177 108 190 107 202 110C214 113 224 121 230 132C235 142 236 153 232 164C228 175 219 185 208 192L188 205L177 213C163 221 154 233 147 247L204 260Z" fill="url(#setuAccent)"/>
+
+    <circle cx="232" cy="137" r="18" fill="#E07A4E" fill-opacity="0.9"/>
+    <circle cx="232" cy="137" r="8" fill="#FFFFFF"/>
+
+    <path d="M115 250C142 227 165 216 196 216C227 216 254 228 280 252" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="9" stroke-linecap="round"/>
+    <path d="M95 286C126 259 155 246 191 246C223 246 250 256 281 281" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <g>
+    <text x="370" y="195" fill="#176B5B" font-size="128" font-family="'Segoe UI', 'Arial', sans-serif" font-weight="800" letter-spacing="3">SETU</text>
+    <rect x="374" y="220" width="248" height="4" rx="2" fill="#DCEFEA"/>
+    <text x="374" y="280" fill="#5C726E" font-size="26" font-family="'Segoe UI', 'Arial', sans-serif" font-weight="600" letter-spacing="1.8">SOCIETAL ENGAGEMENT &amp; TECHNOLOGY UTILITY</text>
+  </g>
+</svg>
