@@ -8,14 +8,4 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  build: {
-    rollupOptions: {
-      input: {
-        home: 'index.html',
-        profile: 'setu-tata-csr-profile.html',
-        payment: 'payment.html',
-        contribute: 'contribute.html',
-      },
-    },
-  },
 })

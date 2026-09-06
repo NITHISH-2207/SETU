@@ -140,6 +140,13 @@ function Login({ selectedRole, onBackToRoles, onNavigate, onLoginSuccess }) {
       } else if (isCitizenIdentifierValid) {
         handleSendCitizenOtp()
       }
+    } else {
+      if (!email.trim() || !password.trim()) return
+      if (onLoginSuccess) {
+        onLoginSuccess({ email, role: activeRole.id, name: activeRole.title })
+      } else if (activeRole.id === 'industry') {
+        onNavigate('industry-dashboard')
+      }
     }
   }
 
