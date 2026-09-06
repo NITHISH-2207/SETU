@@ -45,23 +45,33 @@ function CitizenNavbar({ activeTab, onTabChange, onLogout, notificationsCount = 
         <nav className="hidden md:flex items-center gap-2 font-outfit">
           <button
             onClick={() => onTabChange('dashboard')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
               activeTab === 'dashboard'
                 ? 'bg-[#F7FAF9] text-[#176B5B] font-semibold border border-[#BFD9D2]/70 shadow-2xs'
                 : 'text-[#1F2A28]/80 hover:text-[#176B5B] hover:bg-[#F7FAF9]/60'
             }`}
           >
-            {t('nav.home')}
+            {t('nav.home') || 'Home'}
+          </button>
+          <button
+            onClick={() => onTabChange('my_complaints')}
+            className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+              activeTab === 'my_complaints'
+                ? 'bg-[#F7FAF9] text-[#176B5B] font-semibold border border-[#BFD9D2]/70 shadow-2xs'
+                : 'text-[#1F2A28]/80 hover:text-[#176B5B] hover:bg-[#F7FAF9]/60'
+            }`}
+          >
+            {t('nav.myComplaints') || 'My Complaints'}
           </button>
           <button
             onClick={() => onTabChange('track')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
               activeTab === 'track'
                 ? 'bg-[#F7FAF9] text-[#176B5B] font-semibold border border-[#BFD9D2]/70 shadow-2xs'
                 : 'text-[#1F2A28]/80 hover:text-[#176B5B] hover:bg-[#F7FAF9]/60'
             }`}
           >
-            {t('nav.checkStatus')}
+            {t('nav.checkStatus') || 'Check Status'}
           </button>
         </nav>
 
@@ -76,7 +86,7 @@ function CitizenNavbar({ activeTab, onTabChange, onLogout, notificationsCount = 
             >
               <svg className="w-4 h-4 text-[#176B5B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
+                <line x1="21" y1="12" x2="22" y2="12" />
                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
               </svg>
               <span>{supportedLanguages.find((l) => l.code === currentLanguage)?.nativeName || 'English'}</span>
@@ -169,12 +179,24 @@ function CitizenNavbar({ activeTab, onTabChange, onLogout, notificationsCount = 
 
             {profileMenuOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white border border-[#BFD9D2] rounded-xl shadow-lg p-3 z-40 animate-fade-in">
-                <div className="p-2.5 border-b border-[#BFD9D2]/50 space-y-1">
+                <div className="p-2.5 border-b border-[#BFD9D2]/50">
                   <p className="text-sm font-bold text-[#1F2A28] font-syne">{CITIZEN_USER_PROFILE.name}</p>
-                  <p className="text-xs text-[#5C726E]">{CITIZEN_USER_PROFILE.address}</p>
-                  <p className="text-xs text-[#176B5B] font-mono font-medium">{CITIZEN_USER_PROFILE.formattedPhone}</p>
                 </div>
-                <div className="py-1 border-b border-[#BFD9D2]/50">
+                <div className="py-1 border-b border-[#BFD9D2]/50 space-y-0.5">
+                  <button
+                    onClick={() => {
+                      setProfileMenuOpen(false)
+                      onTabChange('profile')
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs text-[#1F2A28] hover:bg-[#F7FAF9] rounded-lg font-semibold cursor-pointer flex items-center gap-2 transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5 text-[#176B5B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>{t('nav.myProfile') || 'My Profile'}</span>
+                  </button>
+
                   <button
                     onClick={() => {
                       setProfileMenuOpen(false)
@@ -220,22 +242,30 @@ function CitizenNavbar({ activeTab, onTabChange, onLogout, notificationsCount = 
       </div>
 
       {/* Mobile Sub-Navigation Bar */}
-      <div className="md:hidden flex items-center justify-around border-t border-[#BFD9D2]/40 bg-[#F7FAF9] py-2 px-3 font-outfit text-xs">
+      <div className="md:hidden flex items-center justify-around border-t border-[#BFD9D2]/40 bg-[#F7FAF9] py-2 px-2 font-outfit text-xs gap-1">
         <button
           onClick={() => onTabChange('dashboard')}
-          className={`px-5 py-2 rounded-lg font-medium cursor-pointer transition-colors ${
+          className={`flex-1 text-center py-2 px-1 rounded-lg font-medium cursor-pointer transition-colors truncate ${
             activeTab === 'dashboard' ? 'bg-[#176B5B] text-white font-semibold shadow-2xs' : 'text-[#1F2A28]'
           }`}
         >
-          {t('nav.home')}
+          {t('nav.home') || 'Home'}
+        </button>
+        <button
+          onClick={() => onTabChange('my_complaints')}
+          className={`flex-1 text-center py-2 px-1 rounded-lg font-medium cursor-pointer transition-colors truncate ${
+            activeTab === 'my_complaints' ? 'bg-[#176B5B] text-white font-semibold shadow-2xs' : 'text-[#1F2A28]'
+          }`}
+        >
+          {t('nav.myComplaints') || 'My Complaints'}
         </button>
         <button
           onClick={() => onTabChange('track')}
-          className={`px-5 py-2 rounded-lg font-medium cursor-pointer transition-colors ${
+          className={`flex-1 text-center py-2 px-1 rounded-lg font-medium cursor-pointer transition-colors truncate ${
             activeTab === 'track' ? 'bg-[#176B5B] text-white font-semibold shadow-2xs' : 'text-[#1F2A28]'
           }`}
         >
-          {t('nav.checkStatus')}
+          {t('nav.checkStatus') || 'Check Status'}
         </button>
       </div>
     </header>
