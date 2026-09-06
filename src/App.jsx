@@ -1,28 +1,15 @@
-import { useEffect, useState } from "react";
-import TataCSRProfile from "./pages/TataCSRProfile";
+import { Routes, Route } from "react-router-dom";
+import CSRProfile from "./pages/CSRProfile";
 import Payment from "./pages/Payment";
 import Contribute from "./pages/Contribute";
+import "./App.css";
 
 export default function App() {
-  const [path, setPath] = useState(window.location.pathname);
-
-  useEffect(() => {
-    const handleBack = () => {
-      setPath(window.location.pathname);
-    };
-
-    window.addEventListener("popstate", handleBack);
-
-    return () => window.removeEventListener("popstate", handleBack);
-  }, []);
-
-  if (path === "/payment") {
-    return <Payment />;
-  }
-
-  if (path === "/contribute") {
-    return <Contribute />;
-  }
-
-  return <TataCSRProfile />;
+  return (
+    <Routes>
+      <Route path="/" element={<CSRProfile />} />
+      <Route path="/payment" element={<Payment />} />
+      <Route path="/contribute" element={<Contribute />} />
+    </Routes>
+  );
 }

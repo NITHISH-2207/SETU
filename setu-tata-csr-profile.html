@@ -3,10 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="0; url=index.html">
   <title>SETU - Tata Group CSR Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --teal:#0f6857; --orange:#e2793f; --bg:#f7f4ee; --surface:#fff; --text:#141d1a; --soft:#5c655f; --line:#d8d2c3; }
+    body.dark { --bg:#101815; --surface:#18231e; --text:#edf3ef; --soft:#a8b8af; --line:#34473d; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:16px Outfit,sans-serif; transition:background .25s,color .25s; }
+    nav, main, footer { width:min(100% - 48px,1120px); margin:auto; }
+    nav { display:flex; justify-content:space-between; align-items:center; padding:24px 0; border-bottom:1px solid var(--line); }
+    .brand { color:var(--teal); font:800 1.35rem Syne,sans-serif; letter-spacing:.03em; }
+    nav a { color:var(--soft); text-decoration:none; font-size:.9rem; }
+    .theme-toggle { display:inline-grid; place-items:center; width:64px; height:34px; margin-left:14px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--teal); cursor:pointer; font-size:1rem; vertical-align:middle; box-shadow:0 4px 14px #141d1a18; transition:background .25s,border-color .25s,transform .2s; }
+    .theme-toggle:hover { transform:translateY(-2px); border-color:var(--teal); }
+    .theme-toggle:focus-visible { outline:3px solid #e2793f66; outline-offset:3px; }
+    body.dark .theme-toggle { background:var(--teal); color:#fff; border-color:var(--teal); }
+    header { border-bottom:1px solid var(--line); }
+    .hero { display:grid; grid-template-columns:220px 1fr; gap:36px; align-items:center; padding:64px 0; }
+    .mark { display:grid; place-items:center; aspect-ratio:1.35; overflow:hidden; border:1px solid var(--line); border-radius:12px; background:#e9f0e8; }
+    .mark img { width:100%; height:100%; object-fit:cover; }
+    .tag { color:var(--orange); font:700 .72rem Outfit,sans-serif; letter-spacing:.12em; }
+    h1 { margin:12px 0; font:800 clamp(2.2rem,5vw,4rem) Syne,sans-serif; line-height:1.05; }
+    p { color:var(--soft); line-height:1.7; }
+    .stats { display:flex; gap:36px; margin-top:24px; }
+    .stats strong { display:block; color:var(--teal); font-size:1.5rem; }
+    .stats span { color:var(--soft); font-size:.8rem; }
+    section { padding:56px 0; }
+    .section-head { margin-bottom:24px; }
+    h2 { margin:8px 0; font:700 1.8rem Syne,sans-serif; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { padding:24px; border:1px solid var(--line); border-radius:10px; background:var(--surface); box-shadow:0 12px 28px #141d1a10; }
+    body.dark .card, body.dark .completed-card { box-shadow:0 12px 28px #00000035; }
+    .card h3 { margin:10px 0; font-size:1.05rem; }
+    .card p { margin:0 0 18px; font-size:.9rem; }
+    .completed-card { width:100%; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--text); cursor:pointer; padding:24px; text-align:left; font:inherit; box-shadow:0 12px 28px #141d1a10; transition:transform .2s,border-color .2s,box-shadow .2s; }
+    .completed-card:hover { transform:translateY(-3px); border-color:var(--teal); }
+    .completed-card h3 { margin:10px 0; font-size:1.05rem; }
+    .completed-card p { margin:0; font-size:.9rem; }
+    .completed-meta { display:flex; justify-content:space-between; gap:12px; margin-top:18px; color:var(--soft); font-size:.8rem; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .btn { display:inline-block; padding:11px 14px; border-radius:6px; background:var(--teal); color:#fff; text-decoration:none; font-size:.85rem; }
+    .btn.alt { background:#edf6f2; color:var(--teal); }
+    footer { padding:24px 0 40px; border-top:1px solid var(--line); font-size:.8rem; color:var(--soft); }
+    dialog { width:min(100% - 32px,560px); border:1px solid var(--line); border-radius:12px; padding:0; background:var(--surface); color:var(--text); box-shadow:0 24px 80px #0006; }
+    dialog::backdrop { background:#10181599; }
+    .modal { padding:30px; }
+    .modal-head { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; }
+    .modal h2 { margin:8px 0 0; font-size:1.45rem; }
+    .close-modal { width:36px; height:36px; border:1px solid var(--line); border-radius:50%; background:transparent; color:var(--text); cursor:pointer; font-size:1.2rem; }
+    .modal-description { margin:22px 0; }
+    .details { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:0; }
+    .details div { padding:14px; border-radius:8px; background:var(--bg); }
+    .details dt { color:var(--soft); font-size:.75rem; }
+    .details dd { margin:5px 0 0; color:var(--teal); font-weight:700; }
+    @media (max-width:700px) { nav,main,footer { width:min(100% - 32px,1120px); } .hero { grid-template-columns:1fr; padding:42px 0; } .mark { max-width:220px; } .grid { grid-template-columns:1fr; } .stats { gap:20px; } }
+  </style>
 </head>
 <body>
-  <p>Opening the <a href="index.html">Tata Group CSR Profile</a>...</p>
+  <nav><span class="brand">SETU</span><div><a href="#challenges">Open challenges</a> <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark theme" title="Switch theme">☾</button></div></nav>
+  <header><main class="hero"><div class="mark"><img src="/tata.image.png" alt="Tata Group logo"></div><div><span class="tag">CSR PARTNER PROFILE</span><h1>Tata Group</h1><p>One of India's oldest and largest business groups, supporting long-term programmes in health, education, livelihoods and community development.</p><div class="stats"><div><strong>145+</strong><span>years of trust</span></div><div><strong>10+</strong><span>focus areas</span></div><div><strong>3</strong><span>active programmes</span></div></div></div></main></header>
+  <main>
+    <section id="completed"><div class="section-head"><span class="tag">COMPLETED PROJECTS</span><h2>Problems solved with CSR support</h2><p>Select a completed project to view its outcome and contribution details.</p></div><div class="grid">
+      <button class="completed-card" type="button" data-project="water"><span class="tag">WATER ACCESS</span><h3>Safe drinking water for 12 villages</h3><p>Community filtration systems and local maintenance teams brought reliable water access to 8,400 residents.</p><div class="completed-meta"><span>Completed 2024</span><span>View details &rarr;</span></div></button>
+      <button class="completed-card" type="button" data-project="learning"><span class="tag">EDUCATION</span><h3>Smart classrooms for rural schools</h3><p>Digital classrooms and teacher training improved learning access across 18 government schools.</p><div class="completed-meta"><span>Completed 2025</span><span>View details &rarr;</span></div></button>
+      <button class="completed-card" type="button" data-project="livelihoods"><span class="tag">LIVELIHOODS</span><h3>Solar irrigation for small farms</h3><p>Solar pumps and crop planning support helped 260 farming households reduce diesel dependence.</p><div class="completed-meta"><span>Completed 2025</span><span>View details &rarr;</span></div></button>
+    </div></section>
+    <section id="challenges"><div class="section-head"><span class="tag">OPEN FOR SUPPORT</span><h2>Challenges matched to Tata's focus areas</h2><p>Choose how you would like to support a validated community project.</p></div><div class="grid">
+      <article class="card"><span class="tag">HEALTH</span><h3>Mobile health access in rural districts</h3><p>Equip a mobile clinic and support preventive care for remote communities.</p><div class="actions"><a class="btn" href="payment.html?id=SETU-HLT-01&title=Mobile%20health%20access&required=800000&raised=320000">Fund challenge</a><a class="btn alt" href="contribute.html?title=Mobile%20health%20access">Offer support</a></div></article>
+      <article class="card"><span class="tag">EDUCATION</span><h3>Digital learning for government schools</h3><p>Provide devices, connectivity and training for teachers and students.</p><div class="actions"><a class="btn" href="payment.html?id=SETU-EDU-02&title=Digital%20learning&required=650000&raised=210000">Fund challenge</a><a class="btn alt" href="contribute.html?title=Digital%20learning">Offer support</a></div></article>
+      <article class="card"><span class="tag">LIVELIHOODS</span><h3>Reliable income for farming households</h3><p>Scale a soil-moisture sensor pilot and hands-on training across 25 farms.</p><div class="actions"><a class="btn" href="payment.html?id=SETU-LIV-03&title=Reliable%20farm%20income&required=500000&raised=440000">Fund challenge</a><a class="btn alt" href="contribute.html?title=Reliable%20farm%20income">Offer support</a></div></article>
+    </div></section>
+  </main><footer>SETU coordinates support between communities, institutions and CSR partners.</footer>
+  <dialog id="projectDialog"><div class="modal"><div class="modal-head"><div><span class="tag" id="modalTag">COMPLETED PROJECT</span><h2 id="modalTitle"></h2></div><button class="close-modal" id="closeModal" type="button" aria-label="Close project details">&times;</button></div><p class="modal-description" id="modalDescription"></p><dl class="details"><div><dt>Funding provided</dt><dd id="modalFunding"></dd></div><div><dt>Solution provided</dt><dd id="modalSolution"></dd></div><div><dt>University partner</dt><dd id="modalUniversity"></dd></div><div><dt>Project completed</dt><dd id="modalYear"></dd></div></dl></div></dialog>
+  <script>
+    const savedTheme = localStorage.getItem('setu-theme');
+    const themeToggle = document.getElementById('themeToggle');
+    const applyTheme = (isDark) => {
+      document.body.classList.toggle('dark', isDark);
+      themeToggle.textContent = isDark ? '☀' : '☾';
+      themeToggle.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+    };
+    applyTheme(savedTheme === 'dark');
+    themeToggle.addEventListener('click', () => {
+      const isDark = !document.body.classList.contains('dark');
+      localStorage.setItem('setu-theme', isDark ? 'dark' : 'light');
+      applyTheme(isDark);
+    });
+    const projects = {
+      water: { tag: 'WATER ACCESS', title: 'Safe drinking water for 12 villages', description: 'Community filtration systems and local maintenance teams brought reliable water access to 8,400 residents.', funding: '₹18,50,000', solution: '12 solar-powered filtration units, water testing and village maintenance teams', university: 'IIT Bombay', year: '2024' },
+      learning: { tag: 'EDUCATION', title: 'Smart classrooms for rural schools', description: 'Digital classrooms and teacher training improved learning access across 18 government schools.', funding: '₹24,00,000', solution: '18 digital classrooms, offline learning content and teacher training', university: 'Azim Premji University', year: '2025' },
+      livelihoods: { tag: 'LIVELIHOODS', title: 'Solar irrigation for small farms', description: 'Solar pumps and crop planning support helped 260 farming households reduce diesel dependence.', funding: '₹31,75,000', solution: '26 shared solar pumps, crop planning and farmer training', university: 'IIT Delhi', year: '2025' },
+    };
+    const projectDialog = document.getElementById('projectDialog');
+    document.querySelectorAll('[data-project]').forEach((card) => card.addEventListener('click', () => {
+      const project = projects[card.dataset.project];
+      document.getElementById('modalTag').textContent = project.tag;
+      document.getElementById('modalTitle').textContent = project.title;
+      document.getElementById('modalDescription').textContent = project.description;
+      document.getElementById('modalFunding').textContent = project.funding;
+      document.getElementById('modalSolution').textContent = project.solution;
+      document.getElementById('modalUniversity').textContent = project.university;
+      document.getElementById('modalYear').textContent = project.year;
+      projectDialog.showModal();
+    }));
+    document.getElementById('closeModal').addEventListener('click', () => projectDialog.close());
+    projectDialog.addEventListener('click', (event) => { if (event.target === projectDialog) projectDialog.close(); });
+  </script>
 </body>
 </html>
