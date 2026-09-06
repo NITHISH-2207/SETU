@@ -56,6 +56,37 @@ router = APIRouter(
 )
 
 
+@router.get(
+    "/profile",
+    status_code=status.HTTP_200_OK,
+)
+def get_citizen_profile(
+    citizen: Citizen = Depends(get_current_citizen),
+):
+    """Retrieve profile of authenticated citizen."""
+    return {
+        "id": citizen.id,
+        "user_id": citizen.user_id,
+        "full_name": citizen.full_name,
+        "mobile_number": citizen.mobile_number,
+        "email": citizen.email,
+        "mobile_verified": citizen.mobile_verified,
+        "email_verified": citizen.email_verified,
+        "created_at": citizen.created_at.isoformat() if citizen.created_at else None,
+    }
+
+
+@router.get(
+    "/me",
+    status_code=status.HTTP_200_OK,
+)
+def get_citizen_me(
+    citizen: Citizen = Depends(get_current_citizen),
+):
+    """Retrieve profile of authenticated citizen (alias)."""
+    return get_citizen_profile(citizen=citizen)
+
+
 @router.post(
     "/auth/signup",
     response_model=OTPResponse,

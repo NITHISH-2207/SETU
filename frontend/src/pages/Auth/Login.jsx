@@ -2,8 +2,13 @@ import { useState } from 'react'
 import RoleStoryPanel from './RoleStoryPanel.jsx'
 import OtpInput from './OtpInput.jsx'
 import { STAKEHOLDER_ROLES } from './rolesData.jsx'
+import {
+  requestCitizenOtp,
+  verifyCitizenOtp,
+  getCitizenProfile,
+} from '../../services/authService.js'
 
-function Login({ selectedRole, onBackToRoles, onNavigate }) {
+function Login({ selectedRole, onBackToRoles, onNavigate, onLoginSuccess }) {
   // Common states
   const activeRole = selectedRole || STAKEHOLDER_ROLES[0]
   const roleName = activeRole.shortName
@@ -19,28 +24,122 @@ function Login({ selectedRole, onBackToRoles, onNavigate }) {
   const [otpValue, setOtpValue] = useState(['', '', '', '', '', ''])
   const [resendNotice, setResendNotice] = useState(false)
 
+  // API Interaction States
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
+  const [errorMessage, setErrorMessage] = useState(null)
+  const [devOtpInfo, setDevOtpInfo] = useState(null)
+
   // Validation for Citizen Identifier (valid email or valid 10-digit mobile)
   const cleanIdentifier = citizenIdentifier.trim().replace(/\s+/g, '')
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanIdentifier)
   const is10DigitMobile = /^\d{10}$/.test(cleanIdentifier) || /^\+91\d{10}$/.test(cleanIdentifier)
   const isCitizenIdentifierValid = isValidEmail || is10DigitMobile
 
-  const handleSendCitizenOtp = () => {
-    if (isCitizenIdentifierValid) {
+  const handleSendCitizenOtp = async () => {
+    if (!isCitizenIdentifierValid) {
+      setErrorMessage('Please enter a valid 10-digit mobile number or email address.')
+      return
+    }
+
+    setErrorMessage(null)
+    setIsRequestingOtp(true)
+    setDevOtpInfo(null)
+
+    // Normalize identifier if starts with +91
+    const normalizedIdentifier = cleanIdentifier.startsWith('+91')
+      ? cleanIdentifier.slice(3)
+      : cleanIdentifier
+
+    try {
+      const res = await requestCitizenOtp({
+        identifier: normalizedIdentifier,
+        mobile_number: is10DigitMobile ? normalizedIdentifier : null,
+      })
+
       setOtpSent(true)
       setResendNotice(false)
+      if (res?.development_otp) {
+        setDevOtpInfo(res.development_otp)
+      }
+    } catch (err) {
+      if (err.status === 404) {
+        setErrorMessage('Citizen account not found with this mobile/email. Please create an account.')
+      } else {
+        setErrorMessage(err.message || 'Failed to send OTP. Please try again.')
+      }
+    } finally {
+      setIsRequestingOtp(false)
     }
   }
 
-  const handleResendOtp = () => {
-    setResendNotice(true)
-    setTimeout(() => setResendNotice(false), 3000)
+  const handleResendOtp = async () => {
+    setErrorMessage(null)
+    setResendNotice(false)
+
+    const normalizedIdentifier = cleanIdentifier.startsWith('+91')
+      ? cleanIdentifier.slice(3)
+      : cleanIdentifier
+
+    try {
+      const res = await requestCitizenOtp({
+        identifier: normalizedIdentifier,
+        mobile_number: is10DigitMobile ? normalizedIdentifier : null,
+      })
+      setResendNotice(true)
+      if (res?.development_otp) {
+        setDevOtpInfo(res.development_otp)
+      }
+      setTimeout(() => setResendNotice(false), 4000)
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to resend OTP. Please try again.')
+    }
+  }
+
+  const handleVerifyOtp = async () => {
+    const otpCode = otpValue.join('')
+    if (otpCode.length !== 6) {
+      setErrorMessage('Please enter the complete 6-digit OTP code.')
+      return
+    }
+
+    setErrorMessage(null)
+    setIsVerifyingOtp(true)
+
+    const normalizedIdentifier = cleanIdentifier.startsWith('+91')
+      ? cleanIdentifier.slice(3)
+      : cleanIdentifier
+
+    try {
+      await verifyCitizenOtp({
+        identifier: normalizedIdentifier,
+        mobile_number: is10DigitMobile ? normalizedIdentifier : null,
+        otp: otpCode,
+      })
+
+      // Fetch fresh profile
+      const profile = await getCitizenProfile()
+
+      if (onLoginSuccess) {
+        onLoginSuccess(profile)
+      } else {
+        onNavigate('citizen-portal')
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Invalid or expired OTP. Please try again.')
+    } finally {
+      setIsVerifyingOtp(false)
+    }
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (isCitizen) {
-      onNavigate('citizen-portal')
+      if (otpSent) {
+        handleVerifyOtp()
+      } else if (isCitizenIdentifierValid) {
+        handleSendCitizenOtp()
+      }
     }
   }
 
@@ -102,6 +201,18 @@ function Login({ selectedRole, onBackToRoles, onNavigate }) {
                 </p>
               </div>
 
+              {/* Inline Error Banner */}
+              {errorMessage && (
+                <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm font-outfit flex items-start gap-2.5 animate-fade-in">
+                  <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
               {/* Citizen Passwordless Login Form */}
               {isCitizen ? (
                 <form onSubmit={handleSubmit} className="space-y-5 font-outfit">
@@ -117,13 +228,15 @@ function Login({ selectedRole, onBackToRoles, onNavigate }) {
                         id="citizenIdentifier"
                         type="text"
                         required
+                        disabled={isRequestingOtp || isVerifyingOtp || otpSent}
                         value={citizenIdentifier}
                         onChange={(e) => {
                           setCitizenIdentifier(e.target.value)
                           if (otpSent) setOtpSent(false)
+                          if (errorMessage) setErrorMessage(null)
                         }}
                         placeholder="name@example.com or 10-digit mobile"
-                        className="w-full px-4 py-3 text-sm bg-white border border-[#BFD9D2] rounded-lg text-[#1F2A28] placeholder-[#5C726E]/60 focus:outline-hidden focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20 transition-all duration-150"
+                        className="w-full px-4 py-3 text-sm bg-white border border-[#BFD9D2] rounded-lg text-[#1F2A28] placeholder-[#5C726E]/60 focus:outline-hidden focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20 transition-all duration-150 disabled:bg-[#F7FAF9] disabled:text-[#5C726E]"
                       />
                     </div>
                   </div>
@@ -134,9 +247,22 @@ function Login({ selectedRole, onBackToRoles, onNavigate }) {
                       <button
                         type="button"
                         onClick={handleSendCitizenOtp}
-                        className="w-full inline-flex items-center justify-center text-sm font-medium text-white bg-linear-to-b from-[#176B5B] to-[#125649] hover:from-[#156152] hover:to-[#0F473C] px-5 py-3 rounded-xl shadow-xs transition-all duration-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#176B5B] focus-visible:ring-offset-2 cursor-pointer active:scale-[0.99]"
+                        disabled={isRequestingOtp}
+                        className="w-full inline-flex items-center justify-center text-sm font-medium text-white bg-linear-to-b from-[#176B5B] to-[#125649] hover:from-[#156152] hover:to-[#0F473C] px-5 py-3 rounded-xl shadow-xs transition-all duration-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#176B5B] focus-visible:ring-offset-2 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        Get OTP <span className="ml-2">→</span>
+                        {isRequestingOtp ? (
+                          <span className="inline-flex items-center gap-2">
+                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            Sending OTP...
+                          </span>
+                        ) : (
+                          <>
+                            Get OTP <span className="ml-2">→</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   )}
@@ -154,6 +280,22 @@ function Login({ selectedRole, onBackToRoles, onNavigate }) {
                           </span>
                         </div>
 
+                        {devOtpInfo && (
+                          <div className="p-2.5 rounded-lg bg-[#DCEFEA]/60 border border-[#176B5B]/20 text-xs text-[#176B5B] flex items-center justify-between">
+                            <span>Verification Code: <strong className="font-mono text-sm tracking-widest">{devOtpInfo}</strong></span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const digits = devOtpInfo.split('')
+                                setOtpValue(digits)
+                              }}
+                              className="text-[11px] font-semibold underline underline-offset-2 hover:text-[#125649] cursor-pointer"
+                            >
+                              Auto-fill
+                            </button>
+                          </div>
+                        )}
+
                         <OtpInput
                           length={6}
                           value={otpValue}
@@ -162,7 +304,7 @@ function Login({ selectedRole, onBackToRoles, onNavigate }) {
                         />
 
                         <div className="flex items-center justify-between text-xs text-[#5C726E] pt-1">
-                          <span>Didn't receive code?</span>
+                          <span>Didn&apos;t receive code?</span>
                           <button
                             type="button"
                             onClick={handleResendOtp}
@@ -181,9 +323,22 @@ function Login({ selectedRole, onBackToRoles, onNavigate }) {
 
                       <button
                         type="submit"
-                        className="w-full inline-flex items-center justify-center text-sm sm:text-base font-medium text-white bg-linear-to-b from-[#176B5B] to-[#125649] hover:from-[#156152] hover:to-[#0F473C] px-6 py-3.5 rounded-xl shadow-xs transition-all duration-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#176B5B] focus-visible:ring-offset-2 cursor-pointer active:scale-[0.99]"
+                        disabled={isVerifyingOtp}
+                        className="w-full inline-flex items-center justify-center text-sm sm:text-base font-medium text-white bg-linear-to-b from-[#176B5B] to-[#125649] hover:from-[#156152] hover:to-[#0F473C] px-6 py-3.5 rounded-xl shadow-xs transition-all duration-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#176B5B] focus-visible:ring-offset-2 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        Verify &amp; Login <span className="ml-2">→</span>
+                        {isVerifyingOtp ? (
+                          <span className="inline-flex items-center gap-2">
+                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            Verifying...
+                          </span>
+                        ) : (
+                          <>
+                            Verify &amp; Login <span className="ml-2">→</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   )}

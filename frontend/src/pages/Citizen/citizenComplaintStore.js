@@ -2,47 +2,54 @@ import { INITIAL_CITIZEN_ISSUES } from './citizenMockData.js'
 
 const COMPLAINTS_STORAGE_KEY = 'setu_citizen_complaints_v1'
 
-export function getStoredComplaints() {
+function getStorageKey(userId) {
+  return userId ? `setu_citizen_complaints_v1_${userId}` : COMPLAINTS_STORAGE_KEY
+}
+
+export function getStoredComplaints(userId = null) {
   try {
-    const raw = localStorage.getItem(COMPLAINTS_STORAGE_KEY)
+    const key = getStorageKey(userId)
+    const raw = localStorage.getItem(key)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed
       }
     }
   } catch (err) {
     console.warn('Failed to read stored complaints:', err)
   }
-  // Initialize with initial citizen issues
-  saveStoredComplaints(INITIAL_CITIZEN_ISSUES)
-  return INITIAL_CITIZEN_ISSUES
+  // Initialize with initial citizen issues or empty for specific user
+  const initial = userId ? [] : INITIAL_CITIZEN_ISSUES
+  saveStoredComplaints(initial, userId)
+  return initial
 }
 
-export function saveStoredComplaints(complaints) {
+export function saveStoredComplaints(complaints, userId = null) {
   try {
-    localStorage.setItem(COMPLAINTS_STORAGE_KEY, JSON.stringify(complaints))
+    const key = getStorageKey(userId)
+    localStorage.setItem(key, JSON.stringify(complaints))
   } catch (err) {
     console.warn('Failed to persist complaints to localStorage:', err)
   }
 }
 
-export function addStoredComplaint(newComplaint) {
-  const current = getStoredComplaints()
+export function addStoredComplaint(newComplaint, userId = null) {
+  const current = getStoredComplaints(userId)
   const updated = [newComplaint, ...current]
-  saveStoredComplaints(updated)
+  saveStoredComplaints(updated, userId)
   return updated
 }
 
-export function deleteStoredComplaint(id) {
-  const current = getStoredComplaints()
+export function deleteStoredComplaint(id, userId = null) {
+  const current = getStoredComplaints(userId)
   const updated = current.filter((c) => c.id !== id)
-  saveStoredComplaints(updated)
+  saveStoredComplaints(updated, userId)
   return updated
 }
 
-export function toggleStoredComplaintUpvote(id) {
-  const current = getStoredComplaints()
+export function toggleStoredComplaintUpvote(id, userId = null) {
+  const current = getStoredComplaints(userId)
   const updated = current.map((issue) => {
     if (issue.id === id) {
       const newUpvoted = !issue.isUpvoted
@@ -54,7 +61,7 @@ export function toggleStoredComplaintUpvote(id) {
     }
     return issue
   })
-  saveStoredComplaints(updated)
+  saveStoredComplaints(updated, userId)
   return updated
 }
 

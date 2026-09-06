@@ -31,8 +31,11 @@ def verify_otp_code(
         raise ValueError("Maximum OTP attempts exceeded")
 
     now = datetime.now(timezone.utc)
+    expires_at = otp_record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
 
-    if otp_record.expires_at <= now:
+    if expires_at <= now:
         raise ValueError("OTP has expired")
 
     if not verify_otp(otp_code, otp_record.otp_hash):
