@@ -15,6 +15,9 @@ import MentorSignup from './pages/University/MentorSignup.jsx'
 import AdminDashboard from './pages/University/dashboard/AdminDashboard.jsx'
 import MentorDashboard from './pages/University/dashboard/MentorDashboard.jsx'
 import StudentDashboard from './pages/University/dashboard/StudentDashboard.jsx'
+import IndustryLogin from './pages/Industry/IndustryLogin.jsx'
+import IndustrySignup from './pages/Industry/IndustrySignup.jsx'
+import IndustryDashboard from './pages/Industry/IndustryDashboard.jsx'
 import { STAKEHOLDER_ROLES } from './pages/Auth/rolesData.jsx'
 import {
   getAuthToken,
@@ -29,6 +32,7 @@ function App() {
   const [selectedRole, setSelectedRole] = useState(STAKEHOLDER_ROLES[0])
   const [selectedInstitution, setSelectedInstitution] = useState(null)
   const [authenticatedUniversityUser, setAuthenticatedUniversityUser] = useState(null)
+  const [authenticatedIndustryUser, setAuthenticatedIndustryUser] = useState(null)
   const [authenticatedCitizenUser, setAuthenticatedCitizenUser] = useState(() => getStoredCitizenUser())
 
   const handleNavigate = (target, options = {}) => {
@@ -83,15 +87,21 @@ function App() {
     setSelectedRole(role)
     if (role.id === 'university') {
       setCurrentScreen('university-institution-selection')
+    } else if (role.id === 'industry') {
+      setCurrentScreen(authMode === 'signup' ? 'industry-signup' : 'industry-login')
     } else {
-      setCurrentScreen('auth-login')
+      setCurrentScreen(authMode === 'signup' ? 'auth-signup' : 'auth-login')
     }
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
   const handleSwitchAuthMode = (newMode) => {
     setAuthMode(newMode)
-    setCurrentScreen(newMode === 'login' ? 'auth-login' : 'auth-signup')
+    if (selectedRole?.id === 'industry') {
+      setCurrentScreen(newMode === 'login' ? 'industry-login' : 'industry-signup')
+    } else {
+      setCurrentScreen(newMode === 'login' ? 'auth-login' : 'auth-signup')
+    }
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
@@ -147,7 +157,7 @@ function App() {
         />
       )}
 
-      {/* Main Authentication Screens (Citizen, Industry, Government) */}
+      {/* Main Authentication Screens (Citizen, Government) */}
       {currentScreen === 'auth-login' && (
         <Login
           selectedRole={selectedRole}
@@ -181,6 +191,54 @@ function App() {
               handleNavigate(target)
             }
           }}
+        />
+      )}
+
+      {/* Industry / CSR Authentication & Dashboard Screens */}
+      {currentScreen === 'industry-login' && (
+        <IndustryLogin
+          onBackToRoles={() => handleNavigate('role-selection')}
+          onNavigate={(target) => {
+            if (target === 'signup') {
+              handleSwitchAuthMode('signup')
+            } else {
+              handleNavigate(target)
+            }
+          }}
+          onLoginSuccess={(profile) => {
+            setAuthenticatedIndustryUser(profile)
+            setCurrentScreen('industry-dashboard')
+            window.scrollTo({ top: 0, behavior: 'instant' })
+          }}
+        />
+      )}
+
+      {currentScreen === 'industry-signup' && (
+        <IndustrySignup
+          onBackToRoles={() => handleNavigate('role-selection')}
+          onNavigate={(target) => {
+            if (target === 'login') {
+              handleSwitchAuthMode('login')
+            } else {
+              handleNavigate(target)
+            }
+          }}
+          onLoginSuccess={(profile) => {
+            setAuthenticatedIndustryUser(profile)
+            setCurrentScreen('industry-dashboard')
+            window.scrollTo({ top: 0, behavior: 'instant' })
+          }}
+        />
+      )}
+
+      {currentScreen === 'industry-dashboard' && (
+        <IndustryDashboard
+          userProfile={authenticatedIndustryUser || {}}
+          onLogout={() => {
+            setAuthenticatedIndustryUser(null)
+            handleNavigate('landing')
+          }}
+          onNavigate={handleNavigate}
         />
       )}
 

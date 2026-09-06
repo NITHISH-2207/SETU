@@ -175,6 +175,13 @@ function Signup({ selectedRole, onBackToRoles, onNavigate, onLoginSuccess }) {
       } else {
         onNavigate('citizen-portal')
       }
+    } else {
+      if (!email.trim() || !password.trim()) return
+      if (onLoginSuccess) {
+        onLoginSuccess({ email, fullName, role: activeRole.id, name: fullName || activeRole.title })
+      } else if (activeRole.id === 'industry') {
+        onNavigate('industry-dashboard')
+      }
     }
   }
 

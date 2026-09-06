@@ -285,8 +285,8 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
     isStartingVoiceRef.current = false
   }
 
-  // Voice recognition toggle
-  const handleToggleVoice = () => {
+  // Voice recognition toggle (Tap-to-start / Tap-again-to-stop)
+  const handleToggleVoice = async () => {
     if (isListening) {
       handleStopVoice()
       return
@@ -309,8 +309,30 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
     }
 
     setVoiceNotice(null)
-    baseDescriptionRef.current = description.trim()
+    baseDescriptionRef.current = description ? description.trim() : ''
 
+    // Step 1: Ensure microphone permission is requested and verified first
+    if (navigator?.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        // Immediately release tracks so microphone is free for SpeechRecognition
+        stream.getTracks().forEach((track) => track.stop())
+      } catch (permErr) {
+        isStartingVoiceRef.current = false
+        setIsListening(false)
+        if (permErr.name === 'NotAllowedError' || permErr.name === 'PermissionDeniedError') {
+          setVoiceNotice('Microphone access was denied. Please allow microphone permissions in your browser to use voice input.')
+          return
+        }
+        if (permErr.name === 'NotFoundError' || permErr.name === 'DevicesNotFoundError') {
+          setVoiceNotice('No microphone was detected. Please ensure your microphone is connected and enabled.')
+          return
+        }
+        // If other non-critical error occurs, continue to SpeechRecognition
+      }
+    }
+
+    // Step 2: Initialize and start Web Speech API instance
     try {
       if (recognitionRef.current) {
         try {
@@ -369,11 +391,13 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
         switch (e.error) {
           case 'not-allowed':
           case 'permission-denied':
-          case 'service-not-allowed':
             setVoiceNotice('Microphone access was denied. Please allow microphone permissions in your browser to use voice input.')
             break
+          case 'service-not-allowed':
+            setVoiceNotice('The speech recognition service is currently unavailable. Please try again or continue typing.')
+            break
           case 'no-speech':
-            // No speech detected - silently complete without error banner
+            setVoiceNotice('No speech detected. Please try again.')
             break
           case 'audio-capture':
             setVoiceNotice('No microphone was detected. Please ensure your microphone is connected and enabled.')
@@ -385,7 +409,7 @@ function RaiseIssueForm({ onCancel, onSubmitSuccess, onTrackIssue, initialDraft 
             setVoiceNotice('The selected language is not supported for voice recognition on this device.')
             break
           case 'aborted':
-            // User manually stopped or switched away
+            // User manually stopped or switched away, do not show error
             break
           default:
             setVoiceNotice('Voice recognition was interrupted. You can try again or continue typing directly.')

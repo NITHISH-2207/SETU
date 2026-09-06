@@ -21,8 +21,6 @@ import {
 } from './citizenComplaintStore.js'
 
 function CitizenPortal({ currentUser, onLogout, onNavigate: _onNavigate }) {
-  const currentUserId = currentUser?.id || currentUser?.user_id || null
-
   const [activeTab, setActiveTab] = useState(() => {
     try {
       return localStorage.getItem('setu_citizen_active_tab') || 'dashboard'
@@ -30,7 +28,7 @@ function CitizenPortal({ currentUser, onLogout, onNavigate: _onNavigate }) {
       return 'dashboard'
     }
   })
-  const [issues, setIssues] = useState(() => getStoredComplaints(currentUserId))
+  const [issues, setIssues] = useState(() => getStoredComplaints(currentUser))
   const [selectedIssueId, setSelectedIssueId] = useState(() => {
     try {
       const savedId = localStorage.getItem('setu_selected_issue_id')
@@ -38,7 +36,7 @@ function CitizenPortal({ currentUser, onLogout, onNavigate: _onNavigate }) {
     } catch (err) {
       console.warn('Failed to read saved issue id:', err)
     }
-    const initial = getStoredComplaints(currentUserId)
+    const initial = getStoredComplaints(currentUser)
     return initial.length > 0 ? initial[0].id : null
   })
   const [selectedDraft, setSelectedDraft] = useState(null)
@@ -86,12 +84,12 @@ function CitizenPortal({ currentUser, onLogout, onNavigate: _onNavigate }) {
   }
 
   const handleToggleUpvote = (id) => {
-    const updated = toggleStoredComplaintUpvote(id, currentUserId)
+    const updated = toggleStoredComplaintUpvote(id, currentUser)
     setIssues(updated)
   }
 
   const handleComplaintSubmitSuccess = (newComplaint) => {
-    const updated = addStoredComplaint(newComplaint, currentUserId)
+    const updated = addStoredComplaint(newComplaint, currentUser)
     setIssues(updated)
     setSelectedIssueId(newComplaint.id)
     setSubmittedComplaint(newComplaint)
@@ -104,7 +102,7 @@ function CitizenPortal({ currentUser, onLogout, onNavigate: _onNavigate }) {
   }
 
   const handleDeleteComplaint = (id) => {
-    const updated = deleteStoredComplaint(id, currentUserId)
+    const updated = deleteStoredComplaint(id, currentUser)
     setIssues(updated)
     if (selectedIssueId === id) {
       const nextId = updated.length > 0 ? updated[0].id : null
