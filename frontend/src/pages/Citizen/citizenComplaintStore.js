@@ -1,6 +1,7 @@
-import { INITIAL_CITIZEN_ISSUES } from './citizenMockData.js'
+import { INITIAL_CITIZEN_ISSUES, COMMUNITY_CITIZEN_ISSUES } from './citizenMockData.js'
 
 const COMPLAINTS_STORAGE_KEY = 'setu_citizen_complaints_v1'
+const COMMUNITY_STORAGE_KEY = 'setu_community_complaints_v1'
 export const DEMO_CITIZEN_MOBILE = '7894561230'
 
 /**
@@ -133,3 +134,45 @@ export function computeComplaintStats(complaints = []) {
 export function isComplaintDeletable(status) {
   return status === 'submitted' || status === 'under_review'
 }
+
+export function getCommunityStoredComplaints() {
+  try {
+    const raw = localStorage.getItem(COMMUNITY_STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to read stored community complaints:', err)
+  }
+  saveCommunityStoredComplaints(COMMUNITY_CITIZEN_ISSUES)
+  return COMMUNITY_CITIZEN_ISSUES
+}
+
+export function saveCommunityStoredComplaints(complaints) {
+  try {
+    localStorage.setItem(COMMUNITY_STORAGE_KEY, JSON.stringify(complaints))
+  } catch (err) {
+    console.warn('Failed to persist community complaints:', err)
+  }
+}
+
+export function toggleCommunityComplaintUpvote(id) {
+  const current = getCommunityStoredComplaints()
+  const updated = current.map((issue) => {
+    if (issue.id === id) {
+      const newUpvoted = !issue.isUpvoted
+      return {
+        ...issue,
+        isUpvoted: newUpvoted,
+        upvotes: newUpvoted ? (issue.upvotes || 0) + 1 : Math.max(0, (issue.upvotes || 1) - 1),
+      }
+    }
+    return issue
+  })
+  saveCommunityStoredComplaints(updated)
+  return updated
+}
+

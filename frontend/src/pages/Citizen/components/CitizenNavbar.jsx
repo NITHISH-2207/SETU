@@ -57,6 +57,16 @@ function CitizenNavbar({ currentUser, activeTab, onTabChange, onLogout, notifica
             {t('nav.home') || 'Home'}
           </button>
           <button
+            onClick={() => onTabChange('common_issues')}
+            className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+              activeTab === 'common_issues'
+                ? 'bg-[#F7FAF9] text-[#176B5B] font-semibold border border-[#BFD9D2]/70 shadow-2xs'
+                : 'text-[#1F2A28]/80 hover:text-[#176B5B] hover:bg-[#F7FAF9]/60'
+            }`}
+          >
+            {t('nav.commonIssues') || 'Common Issues'}
+          </button>
+          <button
             onClick={() => onTabChange('my_complaints')}
             className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
               activeTab === 'my_complaints'
@@ -256,6 +266,14 @@ function CitizenNavbar({ currentUser, activeTab, onTabChange, onLogout, notifica
           }`}
         >
           {t('nav.home') || 'Home'}
+        </button>
+        <button
+          onClick={() => onTabChange('common_issues')}
+          className={`flex-1 text-center py-2 px-1 rounded-lg font-medium cursor-pointer transition-colors truncate ${
+            activeTab === 'common_issues' ? 'bg-[#176B5B] text-white font-semibold shadow-2xs' : 'text-[#1F2A28]'
+          }`}
+        >
+          {t('nav.commonIssues') || 'Issues'}
         </button>
         <button
           onClick={() => onTabChange('my_complaints')}
