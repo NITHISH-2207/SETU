@@ -1,10 +1,15 @@
 from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
-from app.models.government import GovernmentUser, GovernmentOrganization, GovernmentDepartment
+from app.models.government import (
+    GovernmentUser,
+    GovernmentOrganization,
+    GovernmentDepartment,
+)
 from app.models.report import Report
 from app.models.ai_analysis import AIAnalysis
-from app.models.report_workflow import Resolution, ReportHistory
+from app.models.report_workflow import Resolution
 from app.schemas.government import (
     GovernmentProfileResponse,
     GovernmentReportItem,
@@ -14,17 +19,89 @@ from app.services.workflow_service import transition_report_status, submit_resol
 from app.services.report_service import get_report_detail
 
 
+def _get_authorized_report(
+    db: Session,
+    report_id: int,
+    govt_user: GovernmentUser,
+) -> Report:
+    """
+    Return a report only if it belongs to the government user's jurisdiction.
+
+    Department-level jurisdiction is preferred. If no department jurisdiction
+    is configured, fall back to the organization's district/state.
+    """
+    report = db.query(Report).filter(Report.id == report_id).first()
+
+    if not report:
+        raise ValueError("Report not found")
+
+    dept = (
+        db.query(GovernmentDepartment)
+        .filter(GovernmentDepartment.id == govt_user.department_id)
+        .first()
+        if govt_user.department_id
+        else None
+    )
+
+    if dept and dept.jurisdiction:
+        # Location is optional in the report schema. If it is missing,
+        # the government user may review it because jurisdiction cannot
+        # be determined from location yet.
+        if not report.location:
+            return report
+        if dept.jurisdiction.lower() not in report.location.lower():
+            raise ValueError("Report is outside your jurisdiction")
+        return report
+
+    org = (
+        db.query(GovernmentOrganization)
+        .filter(GovernmentOrganization.id == govt_user.government_id)
+        .first()
+    )
+
+    if not org:
+        raise ValueError("Government organization not found")
+
+    # District is the next useful scope after department jurisdiction.
+    if org.district:
+        # Location is optional, so allow review when jurisdiction cannot
+        # yet be determined from the submitted report.
+        if not report.location:
+            return report
+
+        if org.district.lower() not in report.location.lower():
+            raise ValueError("Report is outside your jurisdiction")
+
+        return report
+
+    # If neither department nor district is configured, allow the organization
+    # to access the report. This supports broader/state-level authorities.
+    return report
+
+
 def get_government_profile(
     db: Session,
     user_id: int,
 ) -> GovernmentProfileResponse:
-    govt_user = db.query(GovernmentUser).filter(GovernmentUser.user_id == user_id).first()
+    govt_user = (
+        db.query(GovernmentUser)
+        .filter(GovernmentUser.user_id == user_id)
+        .first()
+    )
+
     if not govt_user:
         raise ValueError("Government profile not found")
 
-    org = db.query(GovernmentOrganization).filter(GovernmentOrganization.id == govt_user.government_id).first()
+    org = (
+        db.query(GovernmentOrganization)
+        .filter(GovernmentOrganization.id == govt_user.government_id)
+        .first()
+    )
+
     dept = (
-        db.query(GovernmentDepartment).filter(GovernmentDepartment.id == govt_user.department_id).first()
+        db.query(GovernmentDepartment)
+        .filter(GovernmentDepartment.id == govt_user.department_id)
+        .first()
         if govt_user.department_id
         else None
     )
@@ -57,29 +134,56 @@ def list_government_reports(
 
     if status:
         query = query.filter(Report.status == status)
+
     if category:
         query = query.filter(Report.category == category)
 
-    # If department has specific jurisdiction, we can filter or search matching location
     dept = (
-        db.query(GovernmentDepartment).filter(GovernmentDepartment.id == govt_user.department_id).first()
+        db.query(GovernmentDepartment)
+        .filter(GovernmentDepartment.id == govt_user.department_id)
+        .first()
         if govt_user.department_id
         else None
     )
-    if dept and dept.jurisdiction:
-        query = query.filter(Report.location.ilike(f"%{dept.jurisdiction}%"))
 
-    # If research classification filter is applied
+    if dept and dept.jurisdiction:
+        query = query.filter(
+            Report.location.ilike(f"%{dept.jurisdiction}%")
+        )
+    else:
+        org = (
+            db.query(GovernmentOrganization)
+            .filter(GovernmentOrganization.id == govt_user.government_id)
+            .first()
+        )
+
+        if org and org.district:
+            query = query.filter(
+                Report.location.ilike(f"%{org.district}%")
+            )
+
     if research_classification:
-        query = query.join(AIAnalysis, AIAnalysis.report_id == Report.id).filter(
+        query = query.join(
+            AIAnalysis,
+            AIAnalysis.report_id == Report.id,
+        ).filter(
             AIAnalysis.research_classification == research_classification
         )
 
     total = query.count()
+
     offset = (page - 1) * limit
-    reports = query.order_by(Report.created_at.desc()).offset(offset).limit(limit).all()
+
+    reports = (
+        query
+        .order_by(Report.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
     items: list[GovernmentReportItem] = []
+
     for r in reports:
         ai_record = (
             db.query(AIAnalysis)
@@ -87,6 +191,7 @@ def list_government_reports(
             .order_by(AIAnalysis.created_at.desc())
             .first()
         )
+
         items.append(
             GovernmentReportItem(
                 id=r.id,
@@ -101,7 +206,11 @@ def list_government_reports(
                 updated_at=r.updated_at,
                 severity_score=ai_record.severity_score if ai_record else None,
                 urgency_score=ai_record.urgency_score if ai_record else None,
-                research_classification=ai_record.research_classification if ai_record else None,
+                research_classification=(
+                    ai_record.research_classification
+                    if ai_record
+                    else None
+                ),
             )
         )
 
@@ -113,8 +222,14 @@ def get_government_report_detail(
     report_id: int,
     govt_user: GovernmentUser,
 ) -> GovernmentReportDetailResponse:
-    # Full report view
-    detail = get_report_detail(db, report_id, citizen_id=None)
+    # Enforce government jurisdiction before exposing report details.
+    _get_authorized_report(db, report_id, govt_user)
+
+    detail = get_report_detail(
+        db,
+        report_id,
+        citizen_id=None,
+    )
 
     resolutions = (
         db.query(Resolution)
@@ -153,6 +268,8 @@ def update_government_report_status(
     govt_user: GovernmentUser,
     comment: str | None = None,
 ) -> Report:
+    _get_authorized_report(db, report_id, govt_user)
+
     return transition_report_status(
         db=db,
         report_id=report_id,
@@ -170,11 +287,14 @@ def add_government_remark(
     remark: str,
     new_status: str | None = None,
 ) -> Report:
-    report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
-        raise ValueError("Report not found")
+    report = _get_authorized_report(
+        db,
+        report_id,
+        govt_user,
+    )
 
     target_status = new_status or report.status
+
     return transition_report_status(
         db=db,
         report_id=report_id,
@@ -192,6 +312,12 @@ def government_resolve_report(
     solution_details: str,
     evidence: dict | None = None,
 ) -> Resolution:
+    _get_authorized_report(
+        db,
+        report_id,
+        govt_user,
+    )
+
     return submit_resolution(
         db=db,
         report_id=report_id,

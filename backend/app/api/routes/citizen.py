@@ -113,7 +113,7 @@ def citizen_signup(
         role="CITIZEN",
         mobile_number=signup_data.mobile_number,
         email=str(signup_data.email) if signup_data.email else None,
-        account_status="ACTIVE",
+        account_status="PENDING",
         created_at=now,
         updated_at=now,
     )
@@ -237,6 +237,17 @@ def verify_otp(
         citizen.mobile_verified = True
     elif otp_record.type == "EMAIL":
         citizen.email_verified = True
+
+    user = db.query(User).filter(User.id == otp_record.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User account not found",
+        )
+
+    user.account_status = "ACTIVE"
+    user.updated_at = datetime.now(timezone.utc)
+
     db.commit()
 
     access_token = create_access_token(
