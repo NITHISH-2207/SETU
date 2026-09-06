@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SETU - Offer Support</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --teal:#0f6857; --orange:#e2793f; --bg:#f7f4ee; --surface:#fff; --text:#141d1a; --soft:#5c655f; --line:#d8d2c3; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; padding:24px; display:grid; place-items:center; background:var(--bg); color:var(--text); font:16px Outfit,sans-serif; }
+    .card { width:min(100%,460px); padding:36px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+    h1 { margin:10px 0 0; font:700 1.5rem Syne,sans-serif; }
+    .tag { color:var(--orange); font:700 .72rem 'Space Mono',monospace; letter-spacing:.08em; }
+    .back { display:inline-block; margin-bottom:30px; color:var(--teal); font-weight:600; text-decoration:none; }
+    label { display:block; margin:16px 0 6px; color:var(--soft); font-size:.82rem; }
+    input,textarea { width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:6px; font:inherit; }
+    textarea { min-height:100px; resize:vertical; }
+    .btn { width:100%; margin-top:20px; padding:14px; border:0; border-radius:6px; background:var(--teal); color:#fff; cursor:pointer; font:600 .95rem Outfit,sans-serif; }
+    .note { margin:14px 0 0; color:var(--soft); text-align:center; font-size:.76rem; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <a class="back" href="setu-tata-csr-profile.html">&larr; Tata CSR Profile</a>
+    <span class="tag">SUPPORT PLEDGE</span>
+    <h1 id="pledgeTitle">Offer Support</h1>
+    <label for="organisation">Organisation</label>
+    <input id="organisation" value="Tata Group">
+    <label for="email">Contact email</label>
+    <input id="email" type="email" required placeholder="csr@example.com">
+    <label for="details">What support can you provide?</label>
+    <textarea id="details" required placeholder="Equipment, manpower, expertise or programme support"></textarea>
+    <button class="btn" id="submitButton" type="button">Submit pledge &rarr;</button>
+    <p class="note">Frontend placeholder - pledges are coordinated by the SETU team on the backend.</p>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    document.getElementById('pledgeTitle').textContent = 'Offer support: ' + (params.get('title') || 'Community Challenge');
+    document.getElementById('submitButton').addEventListener('click', () => {
+      if (!document.getElementById('email').value || !document.getElementById('details').value) { alert('Please complete your email and support details.'); return; }
+      alert('Frontend demo only. Your support pledge has been recorded for SETU coordination.');
+    });
+  </script>
+</body>
+</html>
