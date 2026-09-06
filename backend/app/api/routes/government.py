@@ -26,6 +26,7 @@ from app.services.government_service import (
     update_government_report_status,
     add_government_remark,
     government_resolve_report,
+    _get_authorized_report,
 )
 
 router = APIRouter(
@@ -191,10 +192,27 @@ def get_report_history(
     db: Session = Depends(get_db),
 ):
     """Retrieve complete status and audit history of a report."""
-    histories = (
-        db.query(ReportStatusHistory)
-        .filter(ReportStatusHistory.report_id == report_id)
-        .order_by(ReportStatusHistory.created_at.asc())
-        .all()
-    )
-    return [ReportStatusHistoryResponse.model_validate(h) for h in histories]
+    try:
+        _get_authorized_report(
+            db=db,
+            report_id=report_id,
+            govt_user=govt_user,
+        )
+
+        histories = (
+            db.query(ReportStatusHistory)
+            .filter(ReportStatusHistory.report_id == report_id)
+            .order_by(ReportStatusHistory.created_at.asc())
+            .all()
+        )
+
+        return [
+            ReportStatusHistoryResponse.model_validate(h)
+            for h in histories
+        ]
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
