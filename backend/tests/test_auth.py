@@ -4,7 +4,8 @@ import uuid
 
 from app.core.config import settings
 from app.models.otp import OTP
-
+from app.models.user import User
+from app.models.government import GovernmentUser
 
 def test_citizen_signup_and_request_otp(client):
     mobile = f"98{uuid.uuid4().int % 100000000:08d}"
@@ -143,3 +144,222 @@ def test_stakeholder_password_login(client, create_test_government):
         json={"identifier": user.email, "password": "WrongPassword"},
     )
     assert bad_res.status_code == 401
+
+def test_stakeholder_registration_requires_organization(client):
+    response = client.post(
+        "/api/v1/auth/register-stakeholder",
+        json={
+            "role": "GOVERNMENT",
+            "full_name": "Random Official",
+            "mobile_number": "9000000001",
+            "email": "random1@example.com",
+            "password": "Password123",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "organization_id is required" in response.json()["detail"]
+
+
+def test_stakeholder_registration_creates_pending_account_without_jwt(
+    client,
+    create_test_government,
+    db,
+):
+    govt = create_test_government()
+
+    response = client.post(
+        "/api/v1/auth/register-stakeholder",
+        json={
+            "role": "GOVERNMENT",
+            "full_name": "Pending Official",
+            "mobile_number": f"90{uuid.uuid4().int % 100000000:08d}",
+            "email": f"pending_{uuid.uuid4().hex[:8]}@example.com",
+            "password": "Password123",
+            "organization_id": govt["org"].id,
+            "department_id": govt["dept"].id,
+            "designation": "Junior Engineer",
+        },
+    )
+
+    assert response.status_code == 201, response.json()
+
+    body = response.json()
+
+    assert body["role"] == "GOVERNMENT"
+    assert body["account_status"] == "PENDING"
+    assert "access_token" not in body
+
+    user = db.query(User).filter(User.id == body["user_id"]).first()
+
+    assert user is not None
+    assert user.account_status == "PENDING"
+
+    govt_user = (
+        db.query(GovernmentUser)
+        .filter(GovernmentUser.user_id == user.id)
+        .first()
+    )
+
+    assert govt_user is not None
+    assert govt_user.status == "PENDING"
+
+
+def test_stakeholder_registration_rejects_wrong_department(
+    client,
+    create_test_government,
+):
+    govt_a = create_test_government()
+    govt_b = create_test_government()
+
+    response = client.post(
+        "/api/v1/auth/register-stakeholder",
+        json={
+            "role": "GOVERNMENT",
+            "full_name": "Cross Org Official",
+            "mobile_number": "9000000003",
+            "email": "crossorg@example.com",
+            "password": "Password123",
+            "organization_id": govt_a["org"].id,
+            "department_id": govt_b["dept"].id,
+        },
+    )
+
+    assert response.status_code == 400
+    assert "does not belong" in response.json()["detail"]
+
+
+def test_pending_stakeholder_cannot_login(
+    client,
+    create_test_government,
+):
+    govt = create_test_government()
+    email = f"pendinglogin_{uuid.uuid4().hex[:8]}@example.com"
+    response = client.post(
+        "/api/v1/auth/register-stakeholder",
+        json={
+            "role": "GOVERNMENT",
+            "full_name": "Pending Login Test",
+            "mobile_number": f"91{uuid.uuid4().int % 100000000:08d}",
+            "email": email,
+            "password": "Password123",
+            "organization_id": govt["org"].id,
+            "department_id": govt["dept"].id,
+        },
+    )
+
+    assert response.status_code == 201, response.json()
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "identifier": email,
+            "password": "Password123",
+        },
+    )
+
+    assert login_response.status_code == 403
+    assert "inactive or suspended" in login_response.json()["detail"]
+
+def test_university_mentor_registration_creates_pending_account(
+    client,
+    create_test_university,
+):
+    uni = create_test_university()
+
+    response = client.post(
+        "/api/v1/auth/register-stakeholder",
+        json={
+            "role": "UNIVERSITY_MENTOR",
+            "full_name": "Pending Mentor",
+            "mobile_number": f"92{uuid.uuid4().int % 100000000:08d}",
+            "email": f"mentor_{uuid.uuid4().hex[:8]}@example.com",
+            "password": "Password123",
+            "organization_id": uni["university"].id,
+            "department_id": uni["dept"].id,
+            "designation": "Assistant Professor",
+        },
+    )
+
+    assert response.status_code == 201, response.json()
+    body = response.json()
+
+    assert body["role"] == "UNIVERSITY_MENTOR"
+    assert body["account_status"] == "PENDING"
+    assert "access_token" not in body
+
+
+def test_university_student_registration_creates_pending_account(
+    client,
+    create_test_university,
+):
+    uni = create_test_university()
+
+    response = client.post(
+        "/api/v1/auth/register-stakeholder",
+        json={
+            "role": "UNIVERSITY_STUDENT",
+            "full_name": "Pending Student",
+            "mobile_number": f"93{uuid.uuid4().int % 100000000:08d}",
+            "email": f"student_{uuid.uuid4().hex[:8]}@example.com",
+            "password": "Password123",
+            "organization_id": uni["university"].id,
+            "department_id": uni["dept"].id,
+        },
+    )
+
+    assert response.status_code == 201, response.json()
+    body = response.json()
+
+    assert body["role"] == "UNIVERSITY_STUDENT"
+    assert body["account_status"] == "PENDING"
+    assert "access_token" not in body
+
+
+def test_csr_registration_creates_pending_account(
+    client,
+    create_test_csr,
+):
+    csr = create_test_csr()
+
+    response = client.post(
+        "/api/v1/auth/register-stakeholder",
+        json={
+            "role": "CSR",
+            "full_name": "Pending CSR Officer",
+            "mobile_number": f"94{uuid.uuid4().int % 100000000:08d}",
+            "email": f"csr_pending_{uuid.uuid4().hex[:8]}@example.com",
+            "password": "Password123",
+            "organization_id": csr["corp"].id,
+            "designation": "CSR Officer",
+        },
+    )
+
+    assert response.status_code == 201, response.json()
+    body = response.json()
+
+    assert body["role"] == "CSR"
+    assert body["account_status"] == "PENDING"
+    assert "access_token" not in body
+
+
+def test_stakeholder_registration_rejects_wrong_organization_type(
+    client,
+    create_test_government,
+):
+    govt = create_test_government()
+
+    response = client.post(
+        "/api/v1/auth/register-stakeholder",
+        json={
+            "role": "UNIVERSITY_MENTOR",
+            "full_name": "Wrong Organization",
+            "mobile_number": f"95{uuid.uuid4().int % 100000000:08d}",
+            "email": f"wrong_org_{uuid.uuid4().hex[:8]}@example.com",
+            "password": "Password123",
+            "organization_id": govt["org"].id,
+        },
+    )
+
+    assert response.status_code == 400
+    assert "university" in response.json()["detail"].lower()
