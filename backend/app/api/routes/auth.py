@@ -1,16 +1,22 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-
+from sqlalchemy.exc import SQLAlchemyError
 from app.db.session import get_db
 from app.models.user import User
-from app.models.government import GovernmentUser
-from app.models.university import UniversityMentor, UniversityStudent
-from app.models.csr import CSRUser
+from app.models.government import GovernmentUser, GovernmentOrganization, GovernmentDepartment
+from app.models.university import (
+    University,
+    UniversityDepartment,
+    UniversityMentor,
+    UniversityStudent,
+)
+from app.models.csr import Corporate, CSRUser
 from app.schemas.auth import (
     LoginRequest,
     LoginResponse,
     StakeholderRegisterRequest,
+    StakeholderRegisterResponse,
 )
 from app.core.security import verify_password, hash_password, create_access_token
 
@@ -78,54 +84,151 @@ def login(
 
 @router.post(
     "/register-stakeholder",
-    response_model=LoginResponse,
-    status_code=status.HTTP_201_CREATED,
+    response_model=StakeholderRegisterResponse,
+    status_code=201,
 )
 def register_stakeholder(
     data: StakeholderRegisterRequest,
     db: Session = Depends(get_db),
 ):
-    """Onboard an organizational stakeholder user (Government, University Mentor, University Student, CSR)."""
-    existing_mobile = db.query(User).filter(User.mobile_number == data.mobile_number).first()
+    """Submit an organizational stakeholder onboarding request."""
+
+    existing_mobile = (
+        db.query(User)
+        .filter(User.mobile_number == data.mobile_number)
+        .first()
+    )
     if existing_mobile:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Mobile number already registered",
         )
 
-    existing_email = db.query(User).filter(User.email == str(data.email)).first()
+    existing_email = (
+        db.query(User)
+        .filter(User.email == str(data.email))
+        .first()
+    )
     if existing_email:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Email address already registered",
         )
 
+    if data.organization_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="organization_id is required for stakeholder registration",
+        )
+
+    # Validate organization according to stakeholder role.
+    organization = None
+
+    if data.role == "GOVERNMENT":
+        organization = (
+            db.query(GovernmentOrganization)
+            .filter(
+                GovernmentOrganization.id == data.organization_id,
+                GovernmentOrganization.status == "ACTIVE",
+            )
+            .first()
+        )
+        if not organization:
+            raise HTTPException(
+                status_code=400,
+                detail="Active government organization not found",
+            )
+
+        if data.department_id is not None:
+            department = (
+                db.query(GovernmentDepartment)
+                .filter(
+                    GovernmentDepartment.id == data.department_id,
+                    GovernmentDepartment.government_id == organization.id,
+                    GovernmentDepartment.status == "ACTIVE",
+                )
+                .first()
+            )
+            if not department:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Department does not belong to the selected government organization",
+                )
+
+    elif data.role in {"UNIVERSITY_MENTOR", "UNIVERSITY_STUDENT"}:
+        organization = (
+            db.query(University)
+            .filter(
+                University.id == data.organization_id,
+                University.status == "ACTIVE",
+            )
+            .first()
+        )
+        if not organization:
+            raise HTTPException(
+                status_code=400,
+                detail="Active university not found",
+            )
+
+        if data.department_id is not None:
+            department = (
+                db.query(UniversityDepartment)
+                .filter(
+                    UniversityDepartment.id == data.department_id,
+                    UniversityDepartment.university_id == organization.id,
+                )
+                .first()
+            )
+            if not department:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Department does not belong to the selected university",
+                )
+
+    elif data.role == "CSR":
+        organization = (
+            db.query(Corporate)
+            .filter(
+                Corporate.id == data.organization_id,
+                Corporate.status == "ACTIVE",
+            )
+            .first()
+        )
+        if not organization:
+            raise HTTPException(
+                status_code=400,
+                detail="Active corporate organization not found",
+            )
+
     now = datetime.now(timezone.utc)
+
+    # Stakeholder accounts require organizational approval/activation.
     user = User(
         role=data.role,
         mobile_number=data.mobile_number,
         email=str(data.email),
         password_hash=hash_password(data.password),
-        account_status="ACTIVE",
+        account_status="PENDING",
         created_at=now,
         updated_at=now,
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
 
-    # Initialize associated profile if organization info provided
-    if data.role == "GOVERNMENT" and data.organization_id:
+    db.add(user)
+    db.flush()
+
+    # Create the stakeholder profile as pending onboarding.
+    if data.role == "GOVERNMENT":
         govt_user = GovernmentUser(
             user_id=user.id,
             government_id=data.organization_id,
             department_id=data.department_id,
             designation=data.designation or "Official",
-            status="ACTIVE",
+            status="PENDING",
             created_at=now,
         )
         db.add(govt_user)
-    elif data.role == "UNIVERSITY_MENTOR" and data.organization_id:
+
+    elif data.role == "UNIVERSITY_MENTOR":
         mentor = UniversityMentor(
             user_id=user.id,
             university_id=data.organization_id,
@@ -133,37 +236,44 @@ def register_stakeholder(
             name=data.full_name,
             designation=data.designation or "Assistant Professor",
             domains=[],
-            profile_status="ACTIVE",
+            profile_status="PENDING",
             created_at=now,
         )
         db.add(mentor)
-    elif data.role == "UNIVERSITY_STUDENT" and data.organization_id:
+
+    elif data.role == "UNIVERSITY_STUDENT":
         student = UniversityStudent(
             user_id=user.id,
             university_id=data.organization_id,
             department_id=data.department_id,
             name=data.full_name,
-            profile_status="ACTIVE",
+            profile_status="PENDING",
             created_at=now,
         )
         db.add(student)
-    elif data.role == "CSR" and data.organization_id:
+
+    elif data.role == "CSR":
         csr_user = CSRUser(
             user_id=user.id,
             corporate_id=data.organization_id,
             designation=data.designation or "CSR Officer",
-            status="ACTIVE",
+            status="PENDING",
             created_at=now,
         )
         db.add(csr_user)
 
-    db.commit()
+    try:
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to complete stakeholder registration",
+        )
 
-    token = create_access_token(user_id=user.id, role=user.role)
-    return LoginResponse(
-        message="Stakeholder registered successfully",
-        access_token=token,
-        token_type="bearer",
+    return StakeholderRegisterResponse(
+        message="Stakeholder registration submitted for approval",
         user_id=user.id,
         role=user.role,
+        account_status=user.account_status,
     )

@@ -53,3 +53,9 @@ class StakeholderRegisterRequest(BaseModel):
     organization_id: int | None = None
     department_id: int | None = None
     designation: str | None = None
+
+class StakeholderRegisterResponse(BaseModel):
+    message: str
+    user_id: int
+    role: str
+    account_status: str
